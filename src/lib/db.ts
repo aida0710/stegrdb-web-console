@@ -1,43 +1,74 @@
 import {Pool, PoolConfig} from 'pg';
 import type {ConnectionInfo} from '@/types/database';
 
-// コネクションプールの保存用マップ
-const pools = new Map<string, Pool>();
+export const pools = new Map<string, Pool>();
 
-// 接続情報からプールConfigを生成
-export const createPoolConfig = (info: ConnectionInfo): PoolConfig => ({
-    host: info.host,
-    port: parseInt(info.port),
-    database: info.database,
-    user: info.username,
-    password: info.password,
-    max: 20, // 最大接続数
-    idleTimeoutMillis: 30000, // アイドルタイムアウト
-    connectionTimeoutMillis: 2000, // 接続タイムアウト
-});
-
-// セッションIDに基づいてプールを取得または作成
-export const getPool = async (sessionId: string, config: PoolConfig): Promise<Pool> => {
-    if (!pools.has(sessionId)) {
-        const pool = new Pool(config);
-
-        // 接続テスト
-        try {
-            const client = await pool.connect();
-            await client.query('SELECT 1');
-            client.release();
-        } catch (error) {
-            pool.end();
-            throw error;
-        }
-
-        pools.set(sessionId, pool);
-    }
-
-    return pools.get(sessionId)!;
+const DEFAULT_CONFIG = {
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+    allowExitOnIdle: true,
+    application_name: 'rdb-web-console',
 };
 
-// プールの終了
+export const createPoolConfig = (info: ConnectionInfo): PoolConfig => {
+    if (!info.host || !info.port || !info.database || !info.username) {
+        throw new Error('Missing required connection parameters');
+    }
+
+    return {
+        ...DEFAULT_CONFIG,
+        host: info.host.trim(),
+        port: parseInt(info.port, 10),
+        database: info.database.trim(),
+        user: info.username.trim(),
+        password: info.password,
+    };
+};
+
+export const getPool = async (sessionId: string, config: PoolConfig): Promise<Pool> => {
+    const existingPool = pools.get(sessionId);
+    if (existingPool) {
+        try {
+            const client = await existingPool.connect();
+            await client.query('SELECT 1');
+            client.release();
+            return existingPool;
+        } catch (error: any) {
+            console.warn('Existing pool failed health check, creating new pool:', error.message);
+            await endPool(sessionId);
+        }
+    }
+
+    const pool = new Pool(config);
+
+    try {
+        const client = await pool.connect();
+        await client.query('SELECT 1');
+        client.release();
+
+        pools.set(sessionId, pool);
+
+        pool.on('error', (err: Error) => {
+            console.error(`Pool error for session ${sessionId}:`, err);
+            endPool(sessionId).catch(console.error);
+        });
+
+        return pool;
+    } catch (error) {
+        await pool.end();
+        throw error;
+    }
+};
+
+export const getExistingPool = async (sessionId: string): Promise<Pool | null> => {
+    const pool = pools.get(sessionId);
+    if (!pool) {
+        return null;
+    }
+    return pool;
+};
+
 export const endPool = async (sessionId: string): Promise<void> => {
     const pool = pools.get(sessionId);
     if (pool) {
@@ -46,22 +77,16 @@ export const endPool = async (sessionId: string): Promise<void> => {
     }
 };
 
-// すべてのプールを終了
 export const endAllPools = async (): Promise<void> => {
-    for (const [sessionId, pool] of pools.entries()) {
-        await pool.end();
-        pools.delete(sessionId);
-    }
-};
+    const poolEndPromises = Array.from(pools.entries()).map(async ([sessionId, pool]) => {
+        try {
+            await pool.end();
+        } catch (error) {
+            console.error(`Failed to end pool ${sessionId}:`, error);
+        } finally {
+            pools.delete(sessionId);
+        }
+    });
 
-// 接続テスト用関数
-export const testConnection = async (config: PoolConfig): Promise<void> => {
-    const pool = new Pool(config);
-    try {
-        const client = await pool.connect();
-        await client.query('SELECT 1');
-        client.release();
-    } finally {
-        await pool.end();
-    }
+    await Promise.all(poolEndPromises);
 };

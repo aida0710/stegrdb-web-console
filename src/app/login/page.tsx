@@ -2,7 +2,7 @@
 
 import React, {useEffect, useState} from 'react';
 import {useRouter} from 'next/navigation';
-import {Database, Save, TestTube, Trash2} from 'lucide-react';
+import {Database, Save, Trash2} from 'lucide-react';
 import {Alert, AlertDescription} from '@/components/ui/alert';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
@@ -11,11 +11,13 @@ import {Label} from '@/components/ui/label';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {useConnectionStore} from '@/lib/connection-store';
 import type {ConnectionInfo} from '@/types/database';
+import {useConnection} from '@/hooks/use-connection';
 
 const DEFAULT_PORT = '5432';
 
 export default function LoginPage() {
     const router = useRouter();
+    const { isChecking } = useConnection();
     const [formData, setFormData] = useState<ConnectionInfo>({
         host: '',
         port: DEFAULT_PORT,
@@ -29,7 +31,6 @@ export default function LoginPage() {
     const [successMessage, setSuccessMessage] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isSaving, setIsSaving] = useState<boolean>(false);
-    const [isTesting, setIsTesting] = useState<boolean>(false);
 
     const {connections, addConnection, getConnection, removeConnection, setActiveConnection} = useConnectionStore();
 
@@ -101,35 +102,6 @@ export default function LoginPage() {
         }
     };
 
-    // 接続テスト
-    const handleTestConnection = async () => {
-        setIsTesting(true);
-        setError('');
-        setSuccessMessage('');
-
-        try {
-            const response = await fetch('/api/postgres/test', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                setSuccessMessage('接続テストに成功しました');
-            } else {
-                throw new Error(data.message || '接続テストに失敗しました');
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : '接続テストに失敗しました');
-        } finally {
-            setIsTesting(false);
-        }
-    };
-
     // 接続処理
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -169,6 +141,14 @@ export default function LoginPage() {
 
         return () => clearTimeout(timer);
     }, [successMessage]);
+
+    if (isChecking) {
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <p>接続を確認中...</p>
+            </div>
+        );
+    }
 
     return (
         <div className='flex min-h-screen items-center justify-center p-4'>
@@ -303,15 +283,6 @@ export default function LoginPage() {
                                 disabled={isSaving}>
                                 <Save className='mr-2 h-4 w-4' />
                                 保存
-                            </Button>
-
-                            <Button
-                                type='button'
-                                variant='outline'
-                                onClick={handleTestConnection}
-                                disabled={isTesting}>
-                                <TestTube className='mr-2 h-4 w-4' />
-                                テスト
                             </Button>
 
                             {connectionName && (

@@ -8,7 +8,10 @@ export interface ConnectionInfo {
 
 export interface SavedConnection extends ConnectionInfo {
     name: string;
-    lastUsed?: Date;
+    lastUsed: Date;
+    createdAt: Date;
+    lastError?: string;
+    retryCount?: number;
 }
 
 export interface ConnectionResponse {
@@ -16,4 +19,15 @@ export interface ConnectionResponse {
     message: string;
     error?: string;
     sessionId?: string;
+    details?: {
+        serverVersion?: string;
+        connectedAt: Date;
+        timeout?: number;
+    };
+}
+
+export interface ConnectionError extends Error {
+    code?: string;
+    severity?: string;
+    details?: unknown;
 }
