@@ -17,7 +17,7 @@ const DEFAULT_PORT = '5432';
 
 export default function LoginPage() {
     const router = useRouter();
-    const { isChecking } = useConnection();
+    const {isChecking} = useConnection();
     const [formData, setFormData] = useState<ConnectionInfo>({
         host: '',
         port: DEFAULT_PORT,
@@ -144,7 +144,7 @@ export default function LoginPage() {
 
     if (isChecking) {
         return (
-            <div className="flex min-h-screen items-center justify-center">
+            <div className='flex min-h-screen items-center justify-center'>
                 <p>接続を確認中...</p>
             </div>
         );

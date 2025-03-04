@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
-import type { ConnectionInfo, SavedConnection } from '@/types/database';
+import {create} from 'zustand';
+import {createJSONStorage, persist} from 'zustand/middleware';
+import type {ConnectionInfo, SavedConnection} from '@/types/database';
 
 interface ConnectionState {
     connections: Record<string, SavedConnection>;
@@ -55,7 +55,7 @@ export const useConnectionStore = create<ConnectionStore>()(
 
             removeConnection: (name) => {
                 set((state) => {
-                    const { [name]: removed, ...newConnections } = state.connections;
+                    const {[name]: removed, ...newConnections} = state.connections;
                     return {
                         connections: newConnections,
                         activeConnection: state.activeConnection === name ? null : state.activeConnection,
@@ -67,7 +67,7 @@ export const useConnectionStore = create<ConnectionStore>()(
                 if (name !== null && !get().connections[name]) {
                     throw new Error(`Connection ${name} not found`);
                 }
-                set({ activeConnection: name });
+                set({activeConnection: name});
             },
 
             clearConnections: () => {
@@ -86,9 +86,7 @@ export const useConnectionStore = create<ConnectionStore>()(
                                 ...connection,
                                 lastUsed: new Date(),
                                 lastError: error,
-                                retryCount: error
-                                    ? (connection.retryCount || 0) + 1
-                                    : 0,
+                                retryCount: error ? (connection.retryCount || 0) + 1 : 0,
                             },
                         },
                     };

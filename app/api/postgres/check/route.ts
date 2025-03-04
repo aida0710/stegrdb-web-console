@@ -1,8 +1,8 @@
 // app/api/postgres/check/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import type { ConnectionResponse } from '@/types/database';
-import { pools } from '@/lib/db';  // poolsをエクスポートする必要があります
+import {NextRequest, NextResponse} from 'next/server';
+import {cookies} from 'next/headers';
+import type {ConnectionResponse} from '@/types/database';
+import {pools} from '@/lib/db'; // poolsをエクスポートする必要があります
 
 const COOKIE_NAME = 'postgres-session';
 
@@ -11,18 +11,12 @@ export async function GET(request: NextRequest): Promise<NextResponse<Connection
         const sessionId = cookies().get(COOKIE_NAME)?.value;
 
         if (!sessionId) {
-            return NextResponse.json(
-                { success: false, message: 'セッションが見つかりません' },
-                { status: 401 }
-            );
+            return NextResponse.json({success: false, message: 'セッションが見つかりません'}, {status: 401});
         }
 
         const pool = pools.get(sessionId);
         if (!pool) {
-            return NextResponse.json(
-                { success: false, message: '接続プールが見つかりません' },
-                { status: 401 }
-            );
+            return NextResponse.json({success: false, message: '接続プールが見つかりません'}, {status: 401});
         }
 
         // 実際の接続テストを行う
@@ -31,7 +25,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<Connection
             await client.query('SELECT 1');
             return NextResponse.json({
                 success: true,
-                message: '接続は有効です'
+                message: '接続は有効です',
             });
         } finally {
             client.release();
@@ -42,9 +36,9 @@ export async function GET(request: NextRequest): Promise<NextResponse<Connection
             {
                 success: false,
                 message: '接続の確認中にエラーが発生しました',
-                error: error instanceof Error ? error.message : '不明なエラーが発生しました'
+                error: error instanceof Error ? error.message : '不明なエラーが発生しました',
             },
-            { status: 500 }
+            {status: 500},
         );
     }
 }

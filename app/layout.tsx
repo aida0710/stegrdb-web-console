@@ -61,16 +61,16 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
     return (
         <html
             suppressHydrationWarning
-            lang="jp">
-        <body className={clsx('min-h-screen bg-background font-sans antialiased', fontSans.variable)}>
-        <Providers themeProps={{attribute: 'class', defaultTheme: 'dark'}}>
-            <div className="flex min-h-screen flex-col">
-                <NavigationBar />
-                <main className="mb-auto">{children}</main>
-                <Footer />
-            </div>
-        </Providers>
-        </body>
+            lang='jp'>
+            <body className={clsx('min-h-screen bg-background font-sans antialiased', fontSans.variable)}>
+                <Providers themeProps={{attribute: 'class', defaultTheme: 'dark'}}>
+                    <div className='flex min-h-screen flex-col'>
+                        <NavigationBar />
+                        <main className='mb-auto'>{children}</main>
+                        <Footer />
+                    </div>
+                </Providers>
+            </body>
         </html>
     );
 }
