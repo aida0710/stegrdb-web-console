@@ -1,8 +1,10 @@
+import type {ConnectionInfo, ConnectionResponse} from '@/types/database';
+
 import {NextRequest, NextResponse} from 'next/server';
 import {cookies} from 'next/headers';
-import {createPoolConfig, endPool, getPool} from '@/lib/db';
-import type {ConnectionInfo, ConnectionResponse} from '@/types/database';
 import {v4 as uuidv4} from 'uuid';
+
+import {createPoolConfig, endPool, getPool} from '@/lib/database/connection-manager';
 
 const COOKIE_NAME = 'postgres-session';
 const COOKIE_OPTIONS = {
@@ -47,6 +49,7 @@ const PG_ERROR_CODES = {
 const getErrorStatusCode = (error: any): number => {
     if (error.code === PG_ERROR_CODES.INVALID_PASSWORD) return 401;
     if (error.code === PG_ERROR_CODES.CONNECTION_REFUSED) return 503;
+
     return 500;
 };
 
@@ -63,7 +66,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<Connectio
             client = await pool.connect();
             const versionResult = await client.query('SELECT version()');
 
-            const cookieStore = cookies();
+            const cookieStore = await cookies();
+
             cookieStore.set({
                 name: COOKIE_NAME,
                 value: sessionId,
@@ -100,7 +104,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Connectio
 
 export async function DELETE(request: NextRequest): Promise<NextResponse<ConnectionResponse>> {
     try {
-        const cookieStore = cookies();
+        const cookieStore = await cookies();
         const sessionId = cookieStore.get(COOKIE_NAME)?.value;
 
         if (!sessionId) {
@@ -117,6 +121,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<Connect
 
         // キャッシュをクリアするためのヘッダーを追加
         const headers = new Headers();
+
         headers.append('Cache-Control', 'no-cache, no-store, must-revalidate');
         headers.append('Pragma', 'no-cache');
         headers.append('Expires', '0');

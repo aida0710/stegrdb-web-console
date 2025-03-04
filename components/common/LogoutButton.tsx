@@ -1,9 +1,11 @@
 'use client';
 
-import {Button} from '@/components/ui/button';
-import {useRouter} from 'next/navigation';
 import {useState} from 'react';
-import {useConnectionStore} from '@/lib/connection-store';
+import {useRouter} from 'next/navigation';
+import {Button} from '@heroui/button';
+import {LogOut} from 'lucide-react';
+
+import {useConnectionStore} from '@/lib/utils/connection-store';
 
 export function LogoutButton() {
     const [isLoading, setIsLoading] = useState(false);
@@ -21,14 +23,14 @@ export function LogoutButton() {
                 throw new Error('ログアウトに失敗しました');
             }
 
-            // Zustand ストアをクリア
+            // Clear Zustand store
             setActiveConnection(null);
 
-            // ログインページにリダイレクト
+            // Redirect to login page
             router.push('/login');
         } catch (error) {
             console.error('Logout error:', error);
-            // エラーが発生してもログインページに遷移
+            // Still redirect to login page even if there's an error
             router.push('/login');
         } finally {
             setIsLoading(false);
@@ -37,9 +39,12 @@ export function LogoutButton() {
 
     return (
         <Button
-            variant='outline'
-            onClick={handleLogout}
-            disabled={isLoading}>
+            color='danger'
+            isDisabled={isLoading}
+            isLoading={isLoading}
+            startContent={<LogOut size={18} />}
+            variant='light'
+            onPress={handleLogout}>
             {isLoading ? 'ログアウト中...' : 'ログアウト'}
         </Button>
     );

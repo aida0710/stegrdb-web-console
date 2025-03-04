@@ -1,6 +1,7 @@
-import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
-import type { ConnectionInfo, SavedConnection } from '@/types/database';
+import type {ConnectionInfo, SavedConnection} from '@/types/database';
+
+import {create} from 'zustand';
+import {createJSONStorage, persist} from 'zustand/middleware';
 
 interface ConnectionState {
     connections: Record<string, SavedConnection>;
@@ -49,13 +50,16 @@ export const useConnectionStore = create<ConnectionStore>()(
 
             getConnection: (name) => {
                 const connection = get().connections[name];
+
                 if (!connection) return null;
+
                 return connection;
             },
 
             removeConnection: (name) => {
                 set((state) => {
-                    const { [name]: removed, ...newConnections } = state.connections;
+                    const {[name]: removed, ...newConnections} = state.connections;
+
                     return {
                         connections: newConnections,
                         activeConnection: state.activeConnection === name ? null : state.activeConnection,
@@ -67,7 +71,7 @@ export const useConnectionStore = create<ConnectionStore>()(
                 if (name !== null && !get().connections[name]) {
                     throw new Error(`Connection ${name} not found`);
                 }
-                set({ activeConnection: name });
+                set({activeConnection: name});
             },
 
             clearConnections: () => {
@@ -77,6 +81,7 @@ export const useConnectionStore = create<ConnectionStore>()(
             updateConnectionStatus: (name, error?) => {
                 set((state) => {
                     const connection = state.connections[name];
+
                     if (!connection) return state;
 
                     return {
@@ -86,9 +91,7 @@ export const useConnectionStore = create<ConnectionStore>()(
                                 ...connection,
                                 lastUsed: new Date(),
                                 lastError: error,
-                                retryCount: error
-                                    ? (connection.retryCount || 0) + 1
-                                    : 0,
+                                retryCount: error ? (connection.retryCount || 0) + 1 : 0,
                             },
                         },
                     };

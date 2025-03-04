@@ -1,10 +1,11 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import type {NextRequest} from 'next/server';
+
+import {NextResponse} from 'next/server';
 
 export function middleware(request: NextRequest) {
     const sessionId = request.cookies.get('postgres-session')?.value;
 
-    console.log("middleware: " + sessionId);
+    console.log('middleware: ' + sessionId);
 
     if (request.nextUrl.pathname === '/dashboard' && !sessionId) {
         return NextResponse.redirect(new URL('/login', request.url));
@@ -18,5 +19,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/dashboard', '/login', '/dashboard/:path*']
+    matcher: ['/dashboard', '/login', '/dashboard/:path*'],
 };
