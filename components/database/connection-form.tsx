@@ -2,9 +2,9 @@
 
 import type {ConnectionInfo} from '@/types/database';
 
-import React, {useState, useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {useRouter} from 'next/navigation';
-import {Card, CardHeader, CardBody, CardFooter} from '@heroui/card';
+import {Card, CardBody, CardFooter, CardHeader} from '@heroui/card';
 import {Input} from '@heroui/input';
 import {Button} from '@heroui/button';
 import {Select, SelectItem} from '@heroui/select';
@@ -39,14 +39,12 @@ export function ConnectionForm({onConnected, defaultConnection}: ConnectionFormP
     const {connect} = useConnection();
     const {connections, addConnection, getConnection, removeConnection, setActiveConnection} = useConnectionStore();
 
-    // 初期値の設定
     useEffect(() => {
         if (defaultConnection && connections[defaultConnection]) {
             handleConnectionSelect(defaultConnection);
         }
     }, [defaultConnection, connections]);
 
-    // フォーム入力の処理
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement> | {target: {name: string; value: string}}) => {
         const {name, value} = e.target;
 
@@ -58,7 +56,6 @@ export function ConnectionForm({onConnected, defaultConnection}: ConnectionFormP
         setSuccessMessage('');
     };
 
-    // 保存済み接続の選択
     const handleConnectionSelect = (value: string) => {
         if (!value) return;
 
@@ -78,7 +75,6 @@ export function ConnectionForm({onConnected, defaultConnection}: ConnectionFormP
         }
     };
 
-    // 接続情報の保存
     const handleSaveConnection = async () => {
         if (!connectionName.trim()) {
             setError('接続名を入力してください');
@@ -98,7 +94,6 @@ export function ConnectionForm({onConnected, defaultConnection}: ConnectionFormP
         }
     };
 
-    // 接続情報の削除
     const handleDeleteConnection = (name: string) => {
         try {
             removeConnection(name);
@@ -119,7 +114,6 @@ export function ConnectionForm({onConnected, defaultConnection}: ConnectionFormP
         }
     };
 
-    // 接続処理
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -146,7 +140,6 @@ export function ConnectionForm({onConnected, defaultConnection}: ConnectionFormP
         }
     };
 
-    // メッセージのクリア
     useEffect(() => {
         if (!successMessage) return;
 
@@ -171,12 +164,12 @@ export function ConnectionForm({onConnected, defaultConnection}: ConnectionFormP
                 <CardBody className='gap-4'>
                     <div className='space-y-2'>
                         <label
-                            htmlFor="savedConnections"
+                            htmlFor='savedConnections'
                             className='text-sm font-medium'>
                             保存済みの接続
                         </label>
                         <Select
-                            id="savedConnections"
+                            id='savedConnections'
                             placeholder='接続を選択'
                             selectedKeys={connectionName ? [connectionName] : []}
                             onChange={(e) => handleConnectionSelect(e.target.value)}>
