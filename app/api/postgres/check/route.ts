@@ -12,26 +12,66 @@ export async function GET(request: NextRequest): Promise<NextResponse<Connection
         const cookieStore = await cookies();
         const sessionId = cookieStore.get(COOKIE_NAME)?.value;
 
+        console.log(`Checking session: ${sessionId || 'not found'}`);
+
         if (!sessionId) {
-            return NextResponse.json({success: false, message: 'セッションが見つかりません'}, {status: 401});
+            return NextResponse.json(
+                {success: false, message: 'セッションが見つかりません'},
+                {
+                    status: 401,
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        Pragma: 'no-cache',
+                        Expires: '0',
+                    },
+                },
+            );
         }
 
         const pool = pools.get(sessionId);
 
         if (!pool) {
-            return NextResponse.json({success: false, message: '接続プールが見つかりません'}, {status: 401});
+            console.log(`No pool found for session: ${sessionId}`);
+            return NextResponse.json(
+                {success: false, message: '接続プールが見つかりません'},
+                {
+                    status: 401,
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        Pragma: 'no-cache',
+                        Expires: '0',
+                    },
+                },
+            );
         }
 
         // 実際の接続テストを行う
         const client = await pool.connect();
 
         try {
-            await client.query('SELECT 1');
+            const result = await client.query('SELECT 1 as connected, version()');
+            console.log(`Session ${sessionId} is valid`);
 
-            return NextResponse.json({
-                success: true,
-                message: '接続は有効です',
-            });
+            const now = new Date();
+            return NextResponse.json(
+                {
+                    success: true,
+                    message: '接続は有効です',
+                    details: {
+                        serverVersion: result.rows[0].version,
+                        connectedAt: now,
+                        timeout: 86400,
+                        connected: result.rows[0].connected === 1,
+                    },
+                },
+                {
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        Pragma: 'no-cache',
+                        Expires: '0',
+                    },
+                },
+            );
         } finally {
             client.release();
         }
@@ -44,7 +84,14 @@ export async function GET(request: NextRequest): Promise<NextResponse<Connection
                 message: '接続の確認中にエラーが発生しました',
                 error: error instanceof Error ? error.message : '不明なエラーが発生しました',
             },
-            {status: 500},
+            {
+                status: 500,
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    Pragma: 'no-cache',
+                    Expires: '0',
+                },
+            },
         );
     }
 }

@@ -2,18 +2,14 @@ import React from 'react';
 import Link from 'next/link';
 import {Activity, ArrowRight, Database, Lock, Search, Settings, Shield} from 'lucide-react';
 import {Button} from '@heroui/button';
-import {Card, CardHeader, CardBody} from '@heroui/card';
-
-import {IndexHeader} from '@/app/index/components/IndexHeader';
+import {Card, CardBody, CardHeader} from '@heroui/card';
 
 export default function HomePage() {
     return (
         <div className='min-h-screen bg-background'>
-            <IndexHeader />
-
             <section className='container mx-auto px-4 pb-16 pt-20 text-center'>
                 <div className='mx-auto max-w-3xl'>
-                    <h1 className='mb-6 text-5xl font-bold tracking-tight'>RDB Tunnel</h1>
+                    <h1 className='mb-6 text-5xl font-bold tracking-tight'>StagRDB</h1>
                     <p className='mb-8 text-xl text-default-500'>
                         データベースを介した革新的な通信トンネリングソフトウェア
                         <br />
@@ -78,7 +74,7 @@ export default function HomePage() {
 
             <section className='bg-default-50 py-16 dark:bg-default-900/20'>
                 <div className='container mx-auto px-4'>
-                    <h2 className='mb-12 text-center text-3xl font-bold'>RDB Tunnelの仕組み</h2>
+                    <h2 className='mb-12 text-center text-3xl font-bold'>StagRDBの仕組み</h2>
                     <div className='mx-auto max-w-4xl'>
                         <div className='grid gap-8 md:grid-cols-2'>
                             <Card>
@@ -152,7 +148,6 @@ export default function HomePage() {
                     </Card>
                 </div>
             </section>
-
         </div>
     );
 }

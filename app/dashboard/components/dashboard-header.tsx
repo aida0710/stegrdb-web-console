@@ -1,29 +1,24 @@
 import React from 'react';
 import Link from 'next/link';
 import {Navbar, NavbarBrand, NavbarContent, NavbarItem} from '@heroui/navbar';
-import {Database, Settings, Terminal} from 'lucide-react';
-
-import {ThemeToggle} from '@/components/layout/ThemeToggle';
-import {LogoutButton} from '@/components/common/LogoutButton';
+import {Settings, Terminal} from 'lucide-react';
 
 export function DashboardHeader() {
     return (
         <Navbar
             isBordered
-            maxWidth='xl'
             position='sticky'>
             <NavbarBrand>
                 <Link
                     className='flex items-center gap-2'
-                    href='/'>
-                    <Database className='h-6 w-6' />
-                    <span className='font-bold text-inherit'>RDB Tunnel</span>
+                    href='/dashboard'>
+                    <span className='font-bold text-inherit'>Dashboard Header</span>
                 </Link>
             </NavbarBrand>
 
             <NavbarContent
                 className='hidden gap-4 sm:flex'
-                justify='center'>
+                justify='end'>
                 <NavbarItem isActive>
                     <Link
                         className='flex items-center gap-1'
@@ -39,15 +34,6 @@ export function DashboardHeader() {
                         <Settings size={18} />
                         <span>設定</span>
                     </Link>
-                </NavbarItem>
-            </NavbarContent>
-
-            <NavbarContent justify='end'>
-                <NavbarItem>
-                    <ThemeToggle />
-                </NavbarItem>
-                <NavbarItem>
-                    <LogoutButton />
                 </NavbarItem>
             </NavbarContent>
         </Navbar>

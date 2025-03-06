@@ -3,9 +3,9 @@
 import type {SavedConnection} from '@/types/database';
 
 import React from 'react';
-import {Card, CardHeader, CardBody} from '@heroui/card';
+import {Card, CardBody, CardHeader} from '@heroui/card';
 import {Button} from '@heroui/button';
-import {Database, Calendar, Trash2, ExternalLink} from 'lucide-react';
+import {Calendar, Database, ExternalLink, Trash2} from 'lucide-react';
 
 import {useConnectionStore} from '@/lib/utils/connection-store';
 

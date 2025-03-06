@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import {Navbar, NavbarBrand, NavbarContent, NavbarItem} from '@heroui/navbar';
@@ -5,6 +7,8 @@ import {Button} from '@heroui/button';
 import {Database} from 'lucide-react';
 
 import {ThemeToggle} from '@/components/layout/ThemeToggle';
+import {useConnection} from '@/lib/hook/use-connection';
+import {LogoutButton} from '@/components/common/LogoutButton';
 
 const menuItems = [
     {
@@ -25,19 +29,20 @@ const menuItems = [
     },
 ] as const;
 
-export function IndexHeader() {
+export function Header() {
+    const {isConnected} = useConnection();
+
     return (
         <Navbar
             isBordered
             className='bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'
-            maxWidth='xl'
             position='sticky'>
             <NavbarBrand>
                 <Link
                     className='flex items-center gap-2'
                     href='/'>
                     <Database className='h-6 w-6' />
-                    <span className='font-bold text-inherit'>RDB Tunnel</span>
+                    <span className='font-bold text-inherit'>StagRDB</span>
                 </Link>
             </NavbarBrand>
 
@@ -59,11 +64,22 @@ export function IndexHeader() {
                 <NavbarItem>
                     <ThemeToggle />
                 </NavbarItem>
-                <NavbarItem>
-                    <Link href='/login'>
-                        <Button variant='flat'>ログイン</Button>
-                    </Link>
-                </NavbarItem>
+                {isConnected ? (
+                    <>
+                        <NavbarItem>
+                            <Link href='/dashboard'>
+                                <Button variant='flat'>管理コンソールへ</Button>
+                            </Link>
+                        </NavbarItem>
+                        <LogoutButton />
+                    </>
+                ) : (
+                    <NavbarItem>
+                        <Link href='/login'>
+                            <Button variant='flat'>ログイン</Button>
+                        </Link>
+                    </NavbarItem>
+                )}
             </NavbarContent>
         </Navbar>
     );

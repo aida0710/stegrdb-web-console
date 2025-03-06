@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import {Card, CardHeader, CardBody} from '@heroui/card';
+import React, {useEffect} from 'react';
+import {Card, CardBody, CardHeader} from '@heroui/card';
 import {Spinner} from '@heroui/spinner';
 
 import {QueryResultTable} from '@/components/database/query-result-table';
@@ -13,7 +13,18 @@ interface ResultsPanelProps {
 }
 
 export function ResultsPanel({results, isLoading, error}: ResultsPanelProps) {
-    // クエリ実行中の場合、ローディング表示
+    useEffect(() => {
+        console.log('Received props:', {results, isLoading, error});
+        if (results) {
+            console.log('Results details:', {
+                rowCount: results.rowCount,
+                fieldsCount: results.fields?.length,
+                rowsCount: results.rows?.length,
+                firstRow: results.rows?.[0],
+            });
+        }
+    }, [results, isLoading, error]);
+
     if (isLoading) {
         return (
             <Card>
@@ -33,7 +44,6 @@ export function ResultsPanel({results, isLoading, error}: ResultsPanelProps) {
         );
     }
 
-    // エラーがある場合、エラー表示
     if (error) {
         return (
             <Card className='border-danger'>
@@ -50,12 +60,27 @@ export function ResultsPanel({results, isLoading, error}: ResultsPanelProps) {
         );
     }
 
-    // 結果がない場合、表示なし
     if (!results) {
         return null;
     }
 
-    // 結果の表示
+    if (results.rows && results.rows.length === 0) {
+        return (
+            <Card>
+                <CardHeader>
+                    <h3 className='text-xl font-bold'>実行結果</h3>
+                </CardHeader>
+                <CardBody className='py-8'>
+                    <div className='text-center text-default-500'>
+                        <p className='mb-2 font-medium'>クエリは正常に実行されました。</p>
+                        <p>{results.command === 'SELECT' ? '該当するレコードがありません' : `${results.rowCount}行が影響を受けました`}</p>
+                        <p className='mt-2 text-xs'>実行時間: {results.executionTime}ms</p>
+                    </div>
+                </CardBody>
+            </Card>
+        );
+    }
+
     return (
         <Card>
             <CardHeader>
@@ -68,7 +93,6 @@ export function ResultsPanel({results, isLoading, error}: ResultsPanelProps) {
     );
 }
 
-// クエリ実行結果が空の場合のコンポーネント
 export function EmptyResultsPanel() {
     return (
         <Card>

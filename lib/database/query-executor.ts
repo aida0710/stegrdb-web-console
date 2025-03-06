@@ -40,7 +40,7 @@ export async function executeQuery(sessionId: string, query: string, options: Qu
 
     // 開発環境の場合、クエリをログに出力
     if (mergedOptions.logQuery) {
-        console.log(`[Query] Executing: ${query}`);
+        console.log(`Executing: ${query}`);
     }
 
     // クエリを実行
@@ -100,9 +100,9 @@ export async function executeQuery(sessionId: string, query: string, options: Qu
 export async function listTables(sessionId: string): Promise<string[]> {
     const result = await executeQuery(
         sessionId,
-        `SELECT table_name 
-         FROM information_schema.tables 
-         WHERE table_schema = 'public' 
+        `SELECT table_name
+         FROM information_schema.tables
+         WHERE table_schema = 'public'
          ORDER BY table_name`,
     );
 
@@ -118,7 +118,7 @@ export async function getTableStructure(sessionId: string, tableName: string): P
         `SELECT column_name, data_type, is_nullable, column_default
          FROM information_schema.columns
          WHERE table_name = '${tableName}'
-         AND table_schema = 'public'
+           AND table_schema = 'public'
          ORDER BY ordinal_position`,
     );
 
@@ -134,7 +134,7 @@ export async function getTableIndexes(sessionId: string, tableName: string): Pro
         `SELECT indexname, indexdef
          FROM pg_indexes
          WHERE tablename = '${tableName}'
-         AND schemaname = 'public'`,
+           AND schemaname = 'public'`,
     );
 
     return result.rows;
@@ -144,7 +144,11 @@ export async function getTableIndexes(sessionId: string, tableName: string): Pro
  * データベースからテーブルの行数を取得する関数
  */
 export async function getTableRowCount(sessionId: string, tableName: string): Promise<number> {
-    const result = await executeQuery(sessionId, `SELECT COUNT(*) as count FROM "${tableName}"`);
+    const result = await executeQuery(
+        sessionId,
+        `SELECT COUNT(*) as count
+                                                  FROM "${tableName}"`,
+    );
 
     return parseInt(result.rows[0].count, 10);
 }
@@ -157,8 +161,8 @@ export async function getDatabaseInfo(sessionId: string): Promise<any> {
 
     const tablesResult = await executeQuery(
         sessionId,
-        `SELECT count(*) as count 
-         FROM information_schema.tables 
+        `SELECT count(*) as count
+         FROM information_schema.tables
          WHERE table_schema = 'public'`,
     );
 

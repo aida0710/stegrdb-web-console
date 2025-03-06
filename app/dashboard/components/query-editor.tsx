@@ -1,15 +1,14 @@
 'use client';
 
-import React, {useState, useEffect} from 'react';
-import {Card, CardHeader, CardBody} from '@heroui/card';
-import {Textarea} from '@heroui/input';
-import {Input} from '@heroui/input';
+import React, {useEffect, useState} from 'react';
+import {Card, CardBody, CardHeader} from '@heroui/card';
+import {Input, Textarea} from '@heroui/input';
 import {Button} from '@heroui/button';
-import {Dropdown, DropdownTrigger, DropdownMenu, DropdownItem} from '@heroui/dropdown';
-import {Tabs, Tab} from '@heroui/tabs';
+import {Dropdown, DropdownItem, DropdownMenu, DropdownTrigger} from '@heroui/dropdown';
+import {Tab, Tabs} from '@heroui/tabs';
 import {Chip} from '@heroui/chip';
 import {Spinner} from '@heroui/spinner';
-import {Play, Save, ChevronDown, FileText, Trash2} from 'lucide-react';
+import {ChevronDown, FileText, Play, Save, Trash2} from 'lucide-react';
 import {useQuery} from '@/lib/hook/use-query';
 
 interface SavedQuery {
@@ -34,15 +33,16 @@ export function QueryEditor({onResultsChange}: QueryEditorProps) {
     const [selectedTab, setSelectedTab] = useState<string>('editor');
     const [loadedQueryId, setLoadedQueryId] = useState<string | null>(null);
 
-    // SQLスニペット定義
     const snippets = [
-        {name: 'テーブル一覧', query: "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;"},
+        {
+            name: 'テーブル一覧',
+            query: "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;",
+        },
         {
             name: 'テーブル構造',
             query: "SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = 'table_name' ORDER BY ordinal_position;",
         },
         {name: 'レコード数', query: 'SELECT COUNT(*) FROM table_name;'},
-        {name: '実行プラン確認', query: 'EXPLAIN ANALYZE\n'},
         {
             name: 'テーブル作成',
             query: 'CREATE TABLE table_name (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(100) NOT NULL,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);',
@@ -63,9 +63,10 @@ export function QueryEditor({onResultsChange}: QueryEditorProps) {
         }
     }, []);
 
-    // 結果を親コンポーネントに通知
+    // 結果が更新されたときに親コンポーネントに通知
     useEffect(() => {
-        if (onResultsChange) {
+        if (onResultsChange && results) {
+            console.log('[QueryEditor] 親コンポーネントに結果を通知:', results);
             onResultsChange(results);
         }
     }, [results, onResultsChange]);
@@ -75,9 +76,10 @@ export function QueryEditor({onResultsChange}: QueryEditorProps) {
         if (!query.trim()) return;
 
         try {
+            console.log('クエリを実行:', query);
             await execute(query);
         } catch (err) {
-            console.error('Query execution error:', err);
+            console.error('クエリ実行エラー:', err);
         }
     };
 
@@ -115,13 +117,13 @@ export function QueryEditor({onResultsChange}: QueryEditorProps) {
         const updatedQueries = savedQueries.map((sq) =>
             sq.id === loadedQueryId
                 ? {
-                    ...sq,
-                    query: query,
-                    tags: queryTags
-                        .split(',')
-                        .map((t) => t.trim())
-                        .filter((t) => t.length > 0),
-                }
+                      ...sq,
+                      query: query,
+                      tags: queryTags
+                          .split(',')
+                          .map((t) => t.trim())
+                          .filter((t) => t.length > 0),
+                  }
                 : sq,
         );
 
@@ -172,7 +174,7 @@ export function QueryEditor({onResultsChange}: QueryEditorProps) {
             <CardHeader className='pb-0'>
                 <div className='flex items-center justify-between'>
                     <h3 className='text-xl font-bold'>クエリエディタ</h3>
-                    <div className='flex gap-2'>
+                    <div className='mx-3 flex'>
                         <Dropdown>
                             <DropdownTrigger>
                                 <Button

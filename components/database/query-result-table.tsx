@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {Table, TableHeader, TableColumn, TableBody, TableRow, TableCell} from '@heroui/table';
+import {Table, TableBody, TableCell, TableColumn, TableHeader, TableRow} from '@heroui/table';
 import {Pagination} from '@heroui/pagination';
 import {Button} from '@heroui/button';
 import {Download} from 'lucide-react';

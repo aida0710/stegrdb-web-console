@@ -5,9 +5,9 @@ import React from 'react';
 
 import {siteConfig} from '@/config/site';
 import {fontSans} from '@/config/fonts';
-import {NavigationBar} from '@/components/layout/NavigationBar';
 import {Providers} from '@/app/providers';
 import {Footer} from '@/components/layout/Footer';
+import {Header} from '@/components/layout/Header';
 
 export const metadata: Metadata = {
     title: {
@@ -64,6 +64,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
             lang='jp'>
             <body className={clsx('min-h-screen bg-background font-sans antialiased', fontSans.variable)}>
                 <Providers themeProps={{attribute: 'class', defaultTheme: 'dark'}}>
+                    <Header />
                     <div className='flex min-h-screen flex-col'>
                         <main className='mb-auto'>{children}</main>
                         <Footer />

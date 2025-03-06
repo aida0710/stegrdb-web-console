@@ -1,15 +1,14 @@
 'use client';
 
 import React, {useEffect, useState} from 'react';
-import {Card, CardHeader} from '@heroui/card';
 import {Spinner} from '@heroui/spinner';
-import {Database} from 'lucide-react';
-
+import {useRouter} from 'next/navigation';
 import {useConnection} from '@/lib/hook/use-connection';
 import {ConnectionForm} from '@/components/database/connection-form';
 
 export default function LoginPage() {
-    const {isChecking} = useConnection();
+    const router = useRouter();
+    const {isChecking, isConnected} = useConnection();
     const [successMessage, setSuccessMessage] = useState<string>('');
 
     useEffect(() => {
@@ -22,6 +21,13 @@ export default function LoginPage() {
         return () => clearTimeout(timer);
     }, [successMessage]);
 
+    useEffect(() => {
+        if (isConnected) {
+            console.log('接続完了を検出、ダッシュボードに遷移します');
+            router.push('/dashboard');
+        }
+    }, [isConnected, router]);
+
     if (isChecking) {
         return (
             <div className='flex min-h-screen items-center justify-center'>
@@ -32,10 +38,10 @@ export default function LoginPage() {
     }
 
     return (
-        <div className='flex min-h-screen items-center justify-center p-4'>
-            <Card className='w-full max-w-xl'>
+        <div className='flex items-center justify-center'>
+            <div className='p-6 md:w-1/2'>
                 <ConnectionForm />
-            </Card>
+            </div>
         </div>
     );
 }

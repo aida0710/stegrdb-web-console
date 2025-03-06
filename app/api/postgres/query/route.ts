@@ -5,6 +5,7 @@ import {FieldDef} from 'pg';
 import {pools} from '@/lib/database/connection-manager';
 
 const COOKIE_NAME = 'postgres-session';
+const MAX_RESULT_SIZE = 5 * 1024 * 1024;
 
 interface QueryRequest {
     query: string;
@@ -27,11 +28,49 @@ interface QueryResponse {
     error?: string;
 }
 
+function limitResultSize(rows: any[], maxRows = 1000): any[] {
+    if (rows.length > maxRows) {
+        console.warn(`Result size limited from ${rows.length} to ${maxRows} rows`);
+        return rows.slice(0, maxRows);
+    }
+    return rows;
+}
+
+function makeSerializable(obj: any): any {
+    if (obj === null || obj === undefined) {
+        return null;
+    }
+
+    if (typeof obj !== 'object') {
+        return obj;
+    }
+
+    if (obj instanceof Date) {
+        return obj.toISOString();
+    }
+
+    if (Array.isArray(obj)) {
+        return obj.map((item) => makeSerializable(item));
+    }
+
+    const result: Record<string, any> = {};
+    for (const [key, value] of Object.entries(obj)) {
+        try {
+            JSON.stringify(value);
+            result[key] = makeSerializable(value);
+        } catch (error) {
+            console.warn(`Non-serializable value for key: ${key}, using string representation`);
+            result[key] = String(value);
+        }
+    }
+
+    return result;
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse<QueryResponse>> {
     const startTime = Date.now();
 
     try {
-        // Get session cookie
         const cookieStore = await cookies();
         const sessionId = cookieStore.get(COOKIE_NAME)?.value;
 
@@ -45,7 +84,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<QueryResp
             );
         }
 
-        // Get connection pool
         const pool = pools.get(sessionId);
 
         if (!pool) {
@@ -58,20 +96,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<QueryResp
             );
         }
 
-        // Parse request body
         const {query} = (await request.json()) as QueryRequest;
-
         if (!query || !query.trim()) {
             return NextResponse.json({success: false, message: 'クエリが指定されていません。'}, {status: 400});
         }
-
-        // Execute query
         const client = await pool.connect();
 
         try {
-            // Security considerations:
-            // In a production environment, you would want to add more validation and security checks here
-            // This is a basic implementation for demonstration purposes
             const result = await client.query(query);
 
             const executionTime = Date.now() - startTime;
@@ -83,10 +114,35 @@ export async function POST(request: NextRequest): Promise<NextResponse<QueryResp
                 });
             }
 
+            const limitedRows = limitResultSize(result.rows);
+            const serializedRows = makeSerializable(limitedRows);
+
+            try {
+                const testSize = JSON.stringify({
+                    rows: serializedRows,
+                    fields: result.fields.map((field: FieldDef) => ({
+                        name: field.name,
+                        dataTypeID: field.dataTypeID,
+                        tableID: field.tableID,
+                    })),
+                }).length;
+
+                console.log(`Response size: ${(testSize / 1024).toFixed(2)} KB`);
+                if (testSize > MAX_RESULT_SIZE) {
+                    throw new Error(`結果のサイズが大きすぎます (${(testSize / 1024 / 1024).toFixed(2)} MB). クエリを絞り込んでください。`);
+                }
+            } catch (error) {
+                if (error instanceof Error && error.message.includes('結果のサイズが大きすぎます')) {
+                    throw error;
+                }
+                console.error('Serialization test failed:', error);
+                throw new Error('結果をシリアライズできません。クエリを絞り込むか、LIMIT句を使用してください。');
+            }
+
             return NextResponse.json({
                 success: true,
                 results: {
-                    rows: result.rows,
+                    rows: serializedRows,
                     fields: result.fields.map((field: FieldDef) => ({
                         name: field.name,
                         dataTypeID: field.dataTypeID,
@@ -102,10 +158,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<QueryResp
         }
     } catch (error: any) {
         console.error('Query execution error:', error);
-
-        // Format the error message in a user-friendly way
         let errorMessage = 'クエリの実行中にエラーが発生しました。';
-
         if (error.message) {
             errorMessage = `エラー: ${error.message}`;
         }
