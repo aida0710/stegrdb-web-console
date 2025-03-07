@@ -127,11 +127,9 @@ export function QueryResultTable({results}: QueryResultTableProps) {
                                 const value = row[field.name];
                                 let displayValue = value;
 
-                                // Format different data types appropriately
                                 if (value === null || value === undefined) {
                                     displayValue = <span className='italic text-default-400'>NULL</span>;
                                 } else if (typeof value === 'object') {
-                                    // Handle objects, dates, etc.
                                     if (value instanceof Date) {
                                         displayValue = value.toLocaleString();
                                     } else {

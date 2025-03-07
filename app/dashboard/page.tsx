@@ -220,9 +220,9 @@ export default function DashboardPage() {
                         <Database className='h-4 w-4 text-default-500' />
                     </CardHeader>
                     <CardBody>
-                        <div className='text-xl font-bold'>{activeConnectionInfo?.name || 'PostgreSQL'}</div>
+                        <div className='text-xl font-bold'>{activeConnectionInfo?.host}:{activeConnectionInfo?.port}</div>
                         <p className='mt-1 text-xs text-default-500'>
-                            {activeConnectionInfo?.host}:{activeConnectionInfo?.port}
+                            {dbInfo ? `PostgreSQL ${dbInfo.version}` : 'バージョン情報を取得中...'}
                         </p>
                     </CardBody>
                 </Card>

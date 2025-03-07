@@ -6,10 +6,8 @@ export function useQuery() {
     const [results, setResults] = useState<any>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    // 最後に実行されたクエリを保存
     const lastQueryRef = useRef<string>('');
 
-    // コンソールに実行情報をログ出力する関数
     const logQueryExecution = useCallback((action: string, data: any) => {
         console.log(`[useQuery][${action}]`, data);
     }, []);
