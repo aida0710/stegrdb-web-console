@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useEffect, useState, useRef} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {Card, CardBody, CardHeader} from '@heroui/card';
 import {Input, Textarea} from '@heroui/input';
 import {Button} from '@heroui/button';
@@ -9,6 +9,7 @@ import {Tab, Tabs} from '@heroui/tabs';
 import {Chip} from '@heroui/chip';
 import {Spinner} from '@heroui/spinner';
 import {ChevronDown, FileText, Play, Save, Trash2} from 'lucide-react';
+import {Code} from '@heroui/code';
 import {useQuery} from '@/lib/hook/use-query';
 
 interface SavedQuery {
@@ -34,7 +35,6 @@ export function QueryEditor({onResultsChange, queryHook}: QueryEditorProps) {
     const [queryName, setQueryName] = useState<string>('');
     const [queryTags, setQueryTags] = useState<string>('');
     const [selectedTab, setSelectedTab] = useState<string>('editor');
-    const [loadedQueryId, setLoadedQueryId] = useState<string | null>(null);
     const [lastExecutedQuery, setLastExecutedQuery] = useState<string>('');
 
     // 実行結果が更新されたかどうかを追跡
@@ -75,7 +75,7 @@ export function QueryEditor({onResultsChange, queryHook}: QueryEditorProps) {
         if (onResultsChange && results) {
             console.log('[QueryEditor] 親コンポーネントに結果を通知:', {
                 results,
-                query: lastExecutedQuery
+                query: lastExecutedQuery,
             });
 
             // 結果が更新されたフラグをセット
@@ -107,7 +107,6 @@ export function QueryEditor({onResultsChange, queryHook}: QueryEditorProps) {
                     execute(query);
                 }
             }, 300);
-
         } catch (err) {
             console.error('[QueryEditor] クエリ実行エラー:', err);
         }
@@ -137,28 +136,6 @@ export function QueryEditor({onResultsChange, queryHook}: QueryEditorProps) {
 
         setQueryName('');
         setQueryTags('');
-        setLoadedQueryId(newQuery.id);
-    };
-
-    // 保存済みクエリの更新
-    const updateSavedQuery = () => {
-        if (!loadedQueryId || !query.trim()) return;
-
-        const updatedQueries = savedQueries.map((sq) =>
-            sq.id === loadedQueryId
-                ? {
-                    ...sq,
-                    query: query,
-                    tags: queryTags
-                        .split(',')
-                        .map((t) => t.trim())
-                        .filter((t) => t.length > 0),
-                }
-                : sq,
-        );
-
-        setSavedQueries(updatedQueries);
-        localStorage.setItem('saved-queries', JSON.stringify(updatedQueries));
     };
 
     // クエリ読み込み
@@ -167,9 +144,8 @@ export function QueryEditor({onResultsChange, queryHook}: QueryEditorProps) {
 
         if (selected) {
             setQuery(selected.query);
-            setQueryName(selected.name);
-            setQueryTags(selected.tags?.join(', ') || '');
-            setLoadedQueryId(id);
+            setQueryName('');
+            setQueryTags('');
             setSelectedTab('editor');
         }
     };
@@ -180,10 +156,6 @@ export function QueryEditor({onResultsChange, queryHook}: QueryEditorProps) {
 
         setSavedQueries(updatedQueries);
         localStorage.setItem('saved-queries', JSON.stringify(updatedQueries));
-
-        if (loadedQueryId === id) {
-            setLoadedQueryId(null);
-        }
     };
 
     // スニペット挿入
@@ -266,25 +238,15 @@ export function QueryEditor({onResultsChange, queryHook}: QueryEditorProps) {
                                         value={queryTags}
                                         onChange={(e) => setQueryTags(e.target.value)}
                                     />
-                                    {loadedQueryId ? (
-                                        <Button
-                                            color='primary'
-                                            isDisabled={!query.trim()}
-                                            startContent={<Save size={16} />}
-                                            variant='flat'
-                                            onPress={updateSavedQuery}>
-                                            更新
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            color='primary'
-                                            isDisabled={!query.trim() || !queryName.trim()}
-                                            startContent={<Save size={16} />}
-                                            variant='flat'
-                                            onPress={saveCurrentQuery}>
-                                            保存
-                                        </Button>
-                                    )}
+                                    {/* 常に「保存」ボタンのみを表示 */}
+                                    <Button
+                                        color='primary'
+                                        isDisabled={!query.trim() || !queryName.trim()}
+                                        startContent={<Save size={16} />}
+                                        variant='flat'
+                                        onPress={saveCurrentQuery}>
+                                        保存
+                                    </Button>
                                 </div>
                                 <Button
                                     color='primary'
@@ -307,11 +269,7 @@ export function QueryEditor({onResultsChange, queryHook}: QueryEditorProps) {
                                     {savedQueries.map((savedQuery) => (
                                         <div
                                             key={savedQuery.id}
-                                            className={`flex items-center justify-between rounded-md p-3 transition-colors ${
-                                                loadedQueryId === savedQuery.id
-                                                    ? 'bg-primary-100 dark:bg-primary-900/30'
-                                                    : 'hover:bg-default-100 dark:hover:bg-default-50/10'
-                                            }`}>
+                                            className='flex items-center justify-between rounded-md p-3 transition-colors hover:bg-default-100 dark:hover:bg-default-50/10'>
                                             <div className='flex-1'>
                                                 <button
                                                     className='w-full cursor-pointer text-left font-medium'
@@ -320,7 +278,8 @@ export function QueryEditor({onResultsChange, queryHook}: QueryEditorProps) {
                                                     aria-label={`クエリ読み込み: ${savedQuery.name}`}>
                                                     {savedQuery.name}
                                                 </button>
-                                                <div className='mt-1 flex flex-wrap gap-1'>
+                                                <div className='mt-1 flex flex-wrap gap-1 items-center'>
+                                                    <Code>{savedQuery.query}</Code>
                                                     {savedQuery.tags?.map((tag) => (
                                                         <Chip
                                                             key={tag}
@@ -338,7 +297,7 @@ export function QueryEditor({onResultsChange, queryHook}: QueryEditorProps) {
                                                     color='primary'
                                                     size='sm'
                                                     variant='light'
-                                                    onClick={() => loadQuery(savedQuery.id)}
+                                                    onPress={() => loadQuery(savedQuery.id)}
                                                     aria-label={`クエリを読み込む: ${savedQuery.name}`}>
                                                     <FileText size={16} />
                                                 </Button>
@@ -347,7 +306,7 @@ export function QueryEditor({onResultsChange, queryHook}: QueryEditorProps) {
                                                     color='danger'
                                                     size='sm'
                                                     variant='light'
-                                                    onClick={() => deleteQuery(savedQuery.id)}
+                                                    onPress={() => deleteQuery(savedQuery.id)}
                                                     aria-label={`クエリを削除: ${savedQuery.name}`}>
                                                     <Trash2 size={16} />
                                                 </Button>
