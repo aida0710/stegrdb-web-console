@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import {Card, CardBody, CardHeader} from '@heroui/card';
 import {Input, Textarea} from '@heroui/input';
 import {Button} from '@heroui/button';
@@ -20,11 +20,14 @@ interface SavedQuery {
 }
 
 interface QueryEditorProps {
-    onResultsChange?: (results: any) => void;
+    onResultsChange?: (results: any, query: string) => void;
+    queryHook?: ReturnType<typeof useQuery>;
 }
 
-export function QueryEditor({onResultsChange}: QueryEditorProps) {
-    const {execute, results, isLoading, error, clearResults} = useQuery();
+export function QueryEditor({onResultsChange, queryHook}: QueryEditorProps) {
+    // 親コンポーネントからqueryHookが提供された場合はそれを使用
+    const internalQueryHook = useQuery();
+    const {execute, results, isLoading, error, clearResults} = queryHook || internalQueryHook;
 
     const [query, setQuery] = useState<string>('');
     const [savedQueries, setSavedQueries] = useState<SavedQuery[]>([]);
@@ -32,6 +35,10 @@ export function QueryEditor({onResultsChange}: QueryEditorProps) {
     const [queryTags, setQueryTags] = useState<string>('');
     const [selectedTab, setSelectedTab] = useState<string>('editor');
     const [loadedQueryId, setLoadedQueryId] = useState<string | null>(null);
+    const [lastExecutedQuery, setLastExecutedQuery] = useState<string>('');
+
+    // 実行結果が更新されたかどうかを追跡
+    const resultsUpdatedRef = useRef<boolean>(false);
 
     const snippets = [
         {
@@ -66,20 +73,43 @@ export function QueryEditor({onResultsChange}: QueryEditorProps) {
     // 結果が更新されたときに親コンポーネントに通知
     useEffect(() => {
         if (onResultsChange && results) {
-            console.log('[QueryEditor] 親コンポーネントに結果を通知:', results);
-            onResultsChange(results);
-        }
-    }, [results, onResultsChange]);
+            console.log('[QueryEditor] 親コンポーネントに結果を通知:', {
+                results,
+                query: lastExecutedQuery
+            });
 
-    // クエリ実行
+            // 結果が更新されたフラグをセット
+            resultsUpdatedRef.current = true;
+
+            onResultsChange(results, lastExecutedQuery);
+        }
+    }, [results, onResultsChange, lastExecutedQuery]);
+
+    // クエリ実行 - useQueryフックを使用
     const executeCurrentQuery = async () => {
         if (!query.trim()) return;
 
         try {
-            console.log('クエリを実行:', query);
+            // 以前の結果をクリア
+            clearResults();
+
+            console.log('[QueryEditor] クエリを実行:', query);
+            setLastExecutedQuery(query);
+            resultsUpdatedRef.current = false;
+
+            // クエリを実行
             await execute(query);
+
+            // 実行後、結果が更新されたかチェック
+            setTimeout(() => {
+                if (!resultsUpdatedRef.current) {
+                    console.warn('[QueryEditor] 結果が更新されていません。再実行を試みます。');
+                    execute(query);
+                }
+            }, 300);
+
         } catch (err) {
-            console.error('クエリ実行エラー:', err);
+            console.error('[QueryEditor] クエリ実行エラー:', err);
         }
     };
 
@@ -117,13 +147,13 @@ export function QueryEditor({onResultsChange}: QueryEditorProps) {
         const updatedQueries = savedQueries.map((sq) =>
             sq.id === loadedQueryId
                 ? {
-                      ...sq,
-                      query: query,
-                      tags: queryTags
-                          .split(',')
-                          .map((t) => t.trim())
-                          .filter((t) => t.length > 0),
-                  }
+                    ...sq,
+                    query: query,
+                    tags: queryTags
+                        .split(',')
+                        .map((t) => t.trim())
+                        .filter((t) => t.length > 0),
+                }
                 : sq,
         );
 
@@ -169,6 +199,14 @@ export function QueryEditor({onResultsChange}: QueryEditorProps) {
         }
     };
 
+    // Ctrl+Enterでクエリを実行
+    const handleKeyDownTextarea = (event: React.KeyboardEvent) => {
+        if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+            event.preventDefault();
+            executeCurrentQuery();
+        }
+    };
+
     return (
         <Card>
             <CardHeader className='pb-0'>
@@ -209,6 +247,7 @@ export function QueryEditor({onResultsChange}: QueryEditorProps) {
                                 placeholder='SELECT * FROM your_table;'
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
+                                onKeyDown={handleKeyDownTextarea}
                             />
 
                             <div className='flex flex-wrap items-center justify-between gap-2'>

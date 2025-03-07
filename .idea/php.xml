@@ -10,9 +10,24 @@
     <option name="highlightLevel" value="WARNING" />
     <option name="transferred" value="true" />
   </component>
+  <component name="PhpCodeSniffer">
+    <phpcs_settings>
+      <phpcs_by_interpreter asDefaultInterpreter="true" interpreter_id="dab8dd4d-4218-4b8f-94da-34e57d5eeffa" beautifier_path="$PROJECT_DIR$/../minio-async-upload/vendor/bin/phpcbf.bat" tool_path="C:/Users/aida0/PhpstormProjects/minio-async-upload/vendor/bin/phpcs.bat" />
+    </phpcs_settings>
+  </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.3" />
+  <component name="PhpStan">
+    <PhpStan_settings>
+      <phpstan_by_interpreter asDefaultInterpreter="true" interpreter_id="dab8dd4d-4218-4b8f-94da-34e57d5eeffa" tool_path="$PROJECT_DIR$/../mysql-connector/vendor/bin/phpstan.bat" />
+    </PhpStan_settings>
+  </component>
   <component name="PhpStanOptionsConfiguration">
     <option name="transferred" value="true" />
+  </component>
+  <component name="Psalm">
+    <Psalm_settings>
+      <psalm_fixer_by_interpreter asDefaultInterpreter="true" interpreter_id="dab8dd4d-4218-4b8f-94da-34e57d5eeffa" timeout="60000" />
+    </Psalm_settings>
   </component>
   <component name="PsalmOptionsConfiguration">
     <option name="transferred" value="true" />

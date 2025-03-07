@@ -3,8 +3,7 @@
 import React, {useEffect} from 'react';
 import {Card, CardBody, CardHeader} from '@heroui/card';
 import {Spinner} from '@heroui/spinner';
-
-import {QueryResultTable} from '@/components/database/query-result-table';
+import {QueryResultTable} from '@/app/dashboard/components/query-result-table';
 
 interface ResultsPanelProps {
     results: any;
@@ -60,8 +59,21 @@ export function ResultsPanel({results, isLoading, error}: ResultsPanelProps) {
         );
     }
 
+    // Changed from returning null to showing EmptyResultsPanel
     if (!results) {
-        return null;
+        return (
+            <Card>
+                <CardHeader>
+                    <h3 className='text-xl font-bold'>実行結果</h3>
+                </CardHeader>
+                <CardBody className='py-8'>
+                    <div className='text-center text-default-500'>
+                        <p className='mb-2 font-medium'>結果がまだ表示されていません</p>
+                        <p className='text-sm'>クエリが実行されていないか、結果の取得に問題が発生しました</p>
+                    </div>
+                </CardBody>
+            </Card>
+        );
     }
 
     if (results.rows && results.rows.length === 0) {
