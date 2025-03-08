@@ -228,18 +228,19 @@ export default function CorrectedFirewallSettings() {
                 </div>
             )}
 
-            <div className='flex justify-end'>
-                <Button
-                    color='primary'
-                    startContent={<Plus size={16} />}
-                    onPress={onOpen}>
-                    新しいルールを追加
-                </Button>
-            </div>
-
             <Card shadow='none'>
                 <CardHeader>
-                    <h3 className='text-lg font-semibold'>ファイアウォールルール一覧</h3>
+                    <div className='flex items-center justify-between'>
+                        <h3 className='text-lg font-semibold'>ファイアウォールルール</h3>
+                        <div className='flex justify-end'>
+                            <Button
+                                color='primary'
+                                startContent={<Plus size={16} />}
+                                onPress={onOpen}>
+                                新しいルールを追加
+                            </Button>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardBody>
                     {rules.length === 0 ? (
