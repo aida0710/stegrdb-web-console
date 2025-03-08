@@ -22,9 +22,7 @@ CREATE TABLE IF NOT EXISTS firewall_settings
 (
     id           SERIAL PRIMARY KEY,
     node_id      SMALLINT,
-    filter_type  VARCHAR(50) NOT NULL CHECK (filter_type IN
-                                             ('SrcIpAddress', 'DstIpAddress', 'SrcPort', 'DstPort', 'EtherType',
-                                              'IpProtocol')),
+    filter_type  VARCHAR(50) NOT NULL CHECK (filter_type IN ('SrcIpAddress', 'DstIpAddress', 'SrcPort', 'DstPort', 'EtherType', 'IpProtocol', 'SrcMacAddress', 'DstMacAddress',)),
     filter_value TEXT        NOT NULL,
     priority     SMALLINT    NOT NULL,
     policy       VARCHAR(20) NOT NULL CHECK (policy IN ('Whitelist', 'Blacklist'))
@@ -35,6 +33,9 @@ CREATE TABLE IF NOT EXISTS node_activity (
     id SERIAL PRIMARY KEY,
     node_id SMALLINT NOT NULL,
     boot_time TIMESTAMPTZ DEFAULT NOW(),
+    interface_name VARCHAR(255) NOT NULL,
+    mac_address MACADDR NOT NULL,
+    ip_address INET NOT NULL,
     FOREIGN KEY (node_id) REFERENCES node_list(id)
 );
 
