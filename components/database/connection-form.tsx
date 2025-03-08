@@ -121,19 +121,48 @@ export function ConnectionForm({onConnected, defaultConnection}: ConnectionFormP
         setSuccessMessage('');
 
         try {
+            console.log('[ConnectionForm] ログイン試行開始');
+
+            // 接続情報を検証
+            if (!formData.host || !formData.port || !formData.database || !formData.username) {
+                throw new Error('すべての必須項目を入力してください');
+            }
+
+            // 接続試行前に少し待機
+            await new Promise((resolve) => setTimeout(resolve, 300));
+
+            // 接続を試行
             const connected = await connect(formData);
 
+            console.log('[ConnectionForm] 接続試行結果:', connected);
+
             if (connected) {
-                setActiveConnection(connectionName);
+                // 接続成功
+                setSuccessMessage('接続に成功しました！');
+
+                // 接続名がある場合は保存
+                if (connectionName.trim()) {
+                    setActiveConnection(connectionName);
+                    addConnection(connectionName, formData);
+                }
+
+                // 成功コールバックを呼び出し
                 if (onConnected) {
-                    onConnected();
+                    console.log('[ConnectionForm] onConnected コールバックを呼び出し');
+                    setTimeout(() => {
+                        onConnected();
+                    }, 500);
                 } else {
-                    router.push('/dashboard');
+                    console.log('[ConnectionForm] ダッシュボードに移動');
+                    setTimeout(() => {
+                        router.push('/dashboard');
+                    }, 500);
                 }
             } else {
                 throw new Error('接続に失敗しました');
             }
         } catch (err) {
+            console.error('[ConnectionForm] 接続エラー:', err);
             setError(err instanceof Error ? err.message : '接続に失敗しました。入力情報を確認してください。');
         } finally {
             setIsLoading(false);

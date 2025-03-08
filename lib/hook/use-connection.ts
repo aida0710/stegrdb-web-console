@@ -73,6 +73,21 @@ export function useConnection() {
                 console.log('[useConnection] Connection check response:', data);
 
                 if (!response.ok || !data.success) {
+                    console.error('[useConnection] Connection check failed:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        data,
+                    });
+
+                    // 明示的にエラー状態を設定
+                    setState((prev) => ({
+                        isChecking: false,
+                        isConnected: false,
+                        error: data.message || '接続が無効です',
+                        connectionInfo: null,
+                        reconnectAttempts: prev.reconnectAttempts,
+                    }));
+
                     throw new Error(data.message || '接続が無効です');
                 }
 
@@ -244,24 +259,47 @@ export function useConnection() {
     useEffect(() => {
         let mounted = true;
 
-        checkConnection().then((connected) => {
-            if (!mounted) return;
+        const initialCheck = async () => {
+            try {
+                console.log('[useConnection] 初期接続確認を開始');
+                const connected = await checkConnection();
 
-            // 接続されていない場合、再接続を試みる
-            if (!connected && activeConnection) {
-                attemptReconnect();
+                if (!mounted) return;
+
+                console.log('[useConnection] 初期接続確認完了:', {connected});
+
+                // 接続されていない場合、再接続を試みる
+                if (!connected && activeConnection) {
+                    console.log('[useConnection] 初期接続が失敗、再接続を試みます');
+                    attemptReconnect();
+                }
+            } catch (error) {
+                console.error('[useConnection] 初期接続確認でエラー:', error);
+                if (mounted) {
+                    setState((prev) => ({
+                        ...prev,
+                        isChecking: false,
+                        error: error instanceof Error ? error.message : '接続の確認中にエラーが発生しました',
+                    }));
+                }
             }
-        });
+        };
 
-        // 定期的な接続チェックタイマーを設定
+        // 少し遅延させてから初期確認を実行
+        const initTimer = setTimeout(() => {
+            initialCheck();
+        }, 300);
+
+        // 接続確認の自動タイマー（30秒ごと）
         const intervalId = setInterval(() => {
             if (mounted) {
                 checkConnection(true).catch(console.error);
             }
-        }, 30000); // 30秒ごとに接続を確認
+        }, 30000);
 
         return () => {
             mounted = false;
+            clearTimeout(initTimer);
             if (reconnectTimerRef.current) {
                 clearTimeout(reconnectTimerRef.current);
             }
