@@ -26,7 +26,7 @@ interface Node {
     name: string;
 }
 
-const FILTER_TYPES = ['SrcIpAddress', 'DstIpAddress', 'SrcPort', 'DstPort', 'EtherType', 'IpProtocol'];
+const FILTER_TYPES = ['SrcIpAddress', 'DstIpAddress', 'SrcPort', 'DstPort', 'IpProtocol', 'EtherType', 'SrcMacAddress', 'DstMacAddress'];
 const POLICIES = ['Whitelist', 'Blacklist'];
 
 export default function CorrectedFirewallSettings() {
