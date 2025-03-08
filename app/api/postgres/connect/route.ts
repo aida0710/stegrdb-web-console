@@ -10,18 +10,46 @@ const COOKIE_NAME = 'postgres-session';
 const COOKIE_OPTIONS = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'lax' as const,
     maxAge: 86400,
     path: '/',
-} as const;
+};
 
 function setCookie<T>(response: NextResponse<T>, sessionId: string): NextResponse<T> {
-    const cookieValue = `${COOKIE_NAME}=${sessionId}; Path=${COOKIE_OPTIONS.path}; Max-Age=${COOKIE_OPTIONS.maxAge}; HttpOnly; ${COOKIE_OPTIONS.secure ? 'Secure; ' : ''}SameSite=${COOKIE_OPTIONS.sameSite}`;
+    // More robust cookie setting that explicitly sets all options
+    // This avoids browser inconsistencies in interpreting cookie attributes
+    const expires = new Date(Date.now() + COOKIE_OPTIONS.maxAge * 1000);
 
-    response.headers.set('Set-Cookie', cookieValue);
-    console.log(`Setting cookie: ${cookieValue.substring(0, 30)}...`);
+    // Set a proper cookie with all attributes
+    response.cookies.set({
+        name: COOKIE_NAME,
+        value: sessionId,
+        httpOnly: COOKIE_OPTIONS.httpOnly,
+        secure: COOKIE_OPTIONS.secure,
+        sameSite: COOKIE_OPTIONS.sameSite,
+        path: COOKIE_OPTIONS.path,
+        maxAge: COOKIE_OPTIONS.maxAge,
+        expires
+    });
+
+    // For debugging, also set the raw header to see exactly what's being sent
+    const cookieValue = `${COOKIE_NAME}=${sessionId}; Path=${COOKIE_OPTIONS.path}; Expires=${expires.toUTCString()}; Max-Age=${COOKIE_OPTIONS.maxAge}; HttpOnly${COOKIE_OPTIONS.secure ? '; Secure' : ''}; SameSite=${COOKIE_OPTIONS.sameSite}`;
+
+    // Log the cookie being set with partial masking for security
+    console.log(`[connect] Setting session cookie: ${sessionId.substring(0, 8)}... expires: ${expires.toISOString()}`);
 
     return response;
+}
+
+function verifyCookie(request: NextRequest, response: NextResponse): boolean {
+    // Check if our cookie is in the Set-Cookie header
+    const setCookieHeader = response.headers.get('Set-Cookie');
+    if (!setCookieHeader || !setCookieHeader.includes(COOKIE_NAME)) {
+        console.error('[connect] Cookie header not set properly:', setCookieHeader);
+        return false;
+    }
+
+    return true;
 }
 
 const PG_ERROR_CODES = {

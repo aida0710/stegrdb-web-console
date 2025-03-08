@@ -1,63 +1,60 @@
 import type {NextRequest} from 'next/server';
 import {NextResponse} from 'next/server';
 
-// セッション確認用のヘルパー関数
 function checkSession(request: NextRequest) {
     const sessionId = request.cookies.get('postgres-session')?.value;
-    console.log(`[Middleware] Path: ${request.nextUrl.pathname}, SessionID: ${sessionId ? 'exists' : 'missing'}`);
 
-    // すべてのCookieをデバッグ用に出力
-    const allCookies = Array.from(request.cookies.getAll())
-        .map((c) => `${c.name}=${c.value.substring(0, 5)}...`)
-        .join(', ');
+    console.log(`[Middleware] Path: ${request.nextUrl.pathname}, SessionID: ${sessionId ? sessionId.substring(0, 8) + '...' : 'missing'}`);
+    console.log(`[Middleware] Headers: ${JSON.stringify(Object.fromEntries(request.headers))}`);
 
-    console.log(`[Middleware] All cookies: ${allCookies}`);
+    if (sessionId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId)) {
+        console.warn(`[Middleware] Invalid session format: ${sessionId.substring(0, 8)}...`);
+        return null;
+    }
 
     return sessionId;
 }
 
 export function middleware(request: NextRequest) {
-    // セッションを確認
     const sessionId = checkSession(request);
     const forcePath = request.nextUrl.searchParams.get('force') === 'true';
 
-    // ダッシュボードアクセス時にセッションがなければログインページへ
-    if (request.nextUrl.pathname.startsWith('/dashboard') && !sessionId) {
-        console.log(`[Middleware] Redirecting to login from ${request.nextUrl.pathname}`);
+    const addDebugHeaders = (response: NextResponse) => {
+        response.headers.set('X-Debug-Session', sessionId || 'none');
+        response.headers.set('X-Debug-Path', request.nextUrl.pathname);
+        return response;
+    };
 
-        // キャッシュ無効化ヘッダーを追加
+    if (request.nextUrl.pathname.startsWith('/dashboard') && !sessionId) {
+        console.log(`[Middleware] Redirecting to login from ${request.nextUrl.pathname} (no session)`);
+
         const response = NextResponse.redirect(new URL('/login', request.url));
         response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
         response.headers.set('Pragma', 'no-cache');
         response.headers.set('Expires', '0');
 
-        return response;
+        return addDebugHeaders(response);
     }
 
-    // ログインページアクセス時にセッションがあればダッシュボードへ
-    // ただし、forceパラメータがtrueの場合はリダイレクトしない
     if (request.nextUrl.pathname === '/login' && sessionId && !forcePath) {
-        console.log('[Middleware] Redirecting to dashboard from login');
+        console.log(`[Middleware] Redirecting to dashboard from login (session: ${sessionId.substring(0, 8)}...)`);
 
-        // キャッシュ無効化ヘッダーを追加
         const response = NextResponse.redirect(new URL('/dashboard', request.url));
         response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
         response.headers.set('Pragma', 'no-cache');
         response.headers.set('Expires', '0');
 
-        return response;
+        return addDebugHeaders(response);
     }
 
-    // それ以外のケースは通常通り処理
-    // キャッシュ無効化ヘッダーのみ追加
     const response = NextResponse.next();
     response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
 
-    return response;
+    return addDebugHeaders(response);
 }
 
 export const config = {
-    matcher: ['/dashboard', '/login', '/dashboard/:path*'],
+    matcher: ['/dashboard', '/login', '/dashboard/:path*', '/api/postgres/:path*'],
 };
