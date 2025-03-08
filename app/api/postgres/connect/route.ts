@@ -29,7 +29,7 @@ function setCookie<T>(response: NextResponse<T>, sessionId: string): NextRespons
         sameSite: COOKIE_OPTIONS.sameSite,
         path: COOKIE_OPTIONS.path,
         maxAge: COOKIE_OPTIONS.maxAge,
-        expires
+        expires,
     });
 
     // For debugging, also set the raw header to see exactly what's being sent
