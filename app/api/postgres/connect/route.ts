@@ -28,7 +28,7 @@ function setCookie<T>(response: NextResponse<T>, sessionId: string): NextRespons
         sameSite: COOKIE_OPTIONS.sameSite,
         path: COOKIE_OPTIONS.path,
         maxAge: COOKIE_OPTIONS.maxAge,
-        expires
+        expires,
     });
 
     // デバッグのため、生のヘッダー形式も表示
@@ -191,7 +191,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<Connect
             sameSite: COOKIE_OPTIONS.sameSite,
             path: '/',
             maxAge: 0,
-            expires: new Date(0)
+            expires: new Date(0),
         });
 
         response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
