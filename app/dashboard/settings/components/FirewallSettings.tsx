@@ -229,16 +229,14 @@ export default function CorrectedFirewallSettings() {
             )}
 
             <Card shadow='none'>
-                <CardHeader>
-                    <div className='flex items-center justify-between'>
-                        <h3 className='text-lg font-semibold'>ファイアウォールルール</h3>
-                        <Button
-                            color='primary'
-                            startContent={<Plus size={16} />}
-                            onPress={onOpen}>
-                            新しいルールを追加
-                        </Button>
-                    </div>
+                <CardHeader className='flex items-center justify-between'>
+                    <h3 className='text-lg font-semibold'>ファイアウォールルール</h3>
+                    <Button
+                        color='primary'
+                        startContent={<Plus size={16} />}
+                        onPress={onOpen}>
+                        新しいルールを追加
+                    </Button>
                 </CardHeader>
                 <CardBody>
                     {rules.length === 0 ? (

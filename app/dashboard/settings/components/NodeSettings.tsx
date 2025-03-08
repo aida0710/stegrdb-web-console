@@ -196,16 +196,14 @@ export default function ImprovedNodeSettings() {
             )}
 
             <Card shadow='none'>
-                <CardHeader>
-                    <div className='flex items-center justify-between'>
-                        <h3 className='text-lg font-semibold'>ノード一覧</h3>
-                        <Button
-                            color='primary'
-                            startContent={<Plus size={16} />}
-                            onPress={onOpen}>
-                            新しいノードを追加
-                        </Button>
-                    </div>
+                <CardHeader className='flex items-center justify-between'>
+                    <h3 className='text-lg font-semibold'>ノード一覧</h3>
+                    <Button
+                        color='primary'
+                        startContent={<Plus size={16} />}
+                        onPress={onOpen}>
+                        新しいノードを追加
+                    </Button>
                 </CardHeader>
                 <CardBody>
                     {nodes.length === 0 ? (
