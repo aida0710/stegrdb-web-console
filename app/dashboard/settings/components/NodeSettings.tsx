@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Card, CardBody, CardHeader } from '@heroui/card';
-import { Button } from '@heroui/button';
-import { Input, Textarea } from '@heroui/input';
-import { Spinner } from '@heroui/spinner';
-import { Plus, Trash2 } from 'lucide-react';
-import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from '@heroui/table';
-import { Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, useDisclosure } from '@heroui/modal';
+import React, {useEffect, useState} from 'react';
+import {Card, CardBody, CardHeader} from '@heroui/card';
+import {Button} from '@heroui/button';
+import {Input, Textarea} from '@heroui/input';
+import {Spinner} from '@heroui/spinner';
+import {Plus, Trash2} from 'lucide-react';
+import {Table, TableBody, TableCell, TableColumn, TableHeader, TableRow} from '@heroui/table';
+import {Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, useDisclosure} from '@heroui/modal';
 
 interface Node {
     id: number;
@@ -19,12 +19,12 @@ export default function ImprovedNodeSettings() {
     const [nodes, setNodes] = useState<Node[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [newNode, setNewNode] = useState<Partial<Node>>({ id: 0, name: '', description: '' });
+    const [newNode, setNewNode] = useState<Partial<Node>>({id: 0, name: '', description: ''});
 
     // Modal controls
-    const { isOpen, onOpen, onClose } = useDisclosure();
+    const {isOpen, onOpen, onClose} = useDisclosure();
     const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
-    const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
+    const {isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose} = useDisclosure();
 
     // ノードデータを読み込む
     const loadNodes = async () => {
@@ -96,7 +96,7 @@ export default function ImprovedNodeSettings() {
             await loadNodes();
 
             // フォームをリセット
-            setNewNode({ id: 0, name: '', description: '' });
+            setNewNode({id: 0, name: '', description: ''});
 
             // モーダルを閉じる
             onClose();
@@ -154,7 +154,7 @@ export default function ImprovedNodeSettings() {
 
     // 入力フィールドの変更を処理
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
+        const {name, value} = e.target;
         setNewNode((prev) => ({
             ...prev,
             [name]: name === 'id' ? parseInt(value) || 0 : value,
@@ -174,42 +174,39 @@ export default function ImprovedNodeSettings() {
 
     if (loading && nodes.length === 0) {
         return (
-            <div className="flex h-40 items-center justify-center">
-                <Spinner size="lg" />
-                <p className="ml-2">ノード情報を読み込み中...</p>
+            <div className='flex h-40 items-center justify-center'>
+                <Spinner size='lg' />
+                <p className='ml-2'>ノード情報を読み込み中...</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-6">
+        <div className='space-y-6'>
             {error && (
-                <div className="rounded-md bg-danger-50 p-3 text-danger">
+                <div className='rounded-md bg-danger-50 p-3 text-danger'>
                     <p>{error}</p>
                 </div>
             )}
 
-            <div className="flex justify-end">
+            <div className='flex justify-end'>
                 <Button
-                    color="primary"
+                    color='primary'
                     startContent={<Plus size={16} />}
-                    onPress={onOpen}
-                >
+                    onPress={onOpen}>
                     新しいノードを追加
                 </Button>
             </div>
 
-            <Card shadow="none">
+            <Card shadow='none'>
                 <CardHeader>
-                    <h3 className="text-lg font-semibold">ノード一覧</h3>
+                    <h3 className='text-lg font-semibold'>ノード一覧</h3>
                 </CardHeader>
                 <CardBody>
                     {nodes.length === 0 ? (
-                        <p className="py-4 text-center text-default-500">
-                            ノードがありません。上の「新しいノードを追加」ボタンから追加してください。
-                        </p>
+                        <p className='py-4 text-center text-default-500'>ノードがありません。上の「新しいノードを追加」ボタンから追加してください。</p>
                     ) : (
-                        <Table aria-label="ノード一覧">
+                        <Table aria-label='ノード一覧'>
                             <TableHeader>
                                 <TableColumn>ID</TableColumn>
                                 <TableColumn>名前</TableColumn>
@@ -222,17 +219,16 @@ export default function ImprovedNodeSettings() {
                                         <TableCell>{node.id}</TableCell>
                                         <TableCell>{node.name}</TableCell>
                                         <TableCell>
-                                            <div className="max-w-md">{node.description}</div>
+                                            <div className='max-w-md'>{node.description}</div>
                                         </TableCell>
                                         <TableCell>
                                             <Button
-                                                color="danger"
-                                                variant="light"
-                                                size="md"
-                                                onPress={() => confirmDelete(node.id)}
-                                            >
-                                                <div className="flex items-center gap-1">
-                                                <Trash2 size={16} />
+                                                color='danger'
+                                                variant='light'
+                                                size='md'
+                                                onPress={() => confirmDelete(node.id)}>
+                                                <div className='flex items-center gap-1'>
+                                                    <Trash2 size={16} />
                                                     <p>削除</p>
                                                 </div>
                                             </Button>
@@ -246,53 +242,52 @@ export default function ImprovedNodeSettings() {
             </Card>
 
             {/* 新規ノード追加モーダル */}
-            <Modal isOpen={isOpen} onClose={onClose}>
+            <Modal
+                isOpen={isOpen}
+                onClose={onClose}>
                 <ModalContent>
                     <ModalHeader>新しいノードを追加</ModalHeader>
                     <ModalBody>
-                        <div className="space-y-4">
+                        <div className='space-y-4'>
                             <div>
                                 <label
-                                    className="mb-1 block text-sm font-medium"
-                                    htmlFor="nodeId"
-                                >
+                                    className='mb-1 block text-sm font-medium'
+                                    htmlFor='nodeId'>
                                     ノードID (必須)
                                 </label>
                                 <Input
-                                    id="nodeId"
-                                    name="id"
-                                    type="number"
-                                    placeholder="例: 153"
+                                    id='nodeId'
+                                    name='id'
+                                    type='number'
+                                    placeholder='例: 153'
                                     value={newNode.id?.toString() || ''}
                                     onChange={handleInputChange}
                                 />
                             </div>
                             <div>
                                 <label
-                                    className="mb-1 block text-sm font-medium"
-                                    htmlFor="nodeName"
-                                >
+                                    className='mb-1 block text-sm font-medium'
+                                    htmlFor='nodeName'>
                                     ノード名 (必須)
                                 </label>
                                 <Input
-                                    id="nodeName"
-                                    name="name"
-                                    placeholder="例: Application Server"
+                                    id='nodeName'
+                                    name='name'
+                                    placeholder='例: Application Server'
                                     value={newNode.name || ''}
                                     onChange={handleInputChange}
                                 />
                             </div>
                             <div>
                                 <label
-                                    className="mb-1 block text-sm font-medium"
-                                    htmlFor="nodeDescription"
-                                >
+                                    className='mb-1 block text-sm font-medium'
+                                    htmlFor='nodeDescription'>
                                     説明
                                 </label>
                                 <Textarea
-                                    id="nodeDescription"
-                                    name="description"
-                                    placeholder="このノードの説明を入力してください"
+                                    id='nodeDescription'
+                                    name='description'
+                                    placeholder='このノードの説明を入力してください'
                                     value={newNode.description || ''}
                                     onChange={handleInputChange}
                                 />
@@ -301,16 +296,14 @@ export default function ImprovedNodeSettings() {
                     </ModalBody>
                     <ModalFooter>
                         <Button
-                            color="default"
-                            variant="light"
-                            onPress={onClose}
-                        >
+                            color='default'
+                            variant='light'
+                            onPress={onClose}>
                             キャンセル
                         </Button>
                         <Button
-                            color="primary"
-                            onPress={addNode}
-                        >
+                            color='primary'
+                            onPress={addNode}>
                             追加
                         </Button>
                     </ModalFooter>
@@ -318,25 +311,25 @@ export default function ImprovedNodeSettings() {
             </Modal>
 
             {/* 削除確認モーダル */}
-            <Modal isOpen={isDeleteOpen} onClose={onDeleteClose}>
+            <Modal
+                isOpen={isDeleteOpen}
+                onClose={onDeleteClose}>
                 <ModalContent>
                     <ModalHeader>ノードの削除</ModalHeader>
                     <ModalBody>
                         <p>本当にこのノード (ID: {deleteConfirmId}) を削除しますか？</p>
-                        <p className="mt-2 text-danger">この操作は元に戻せません。関連するファイアウォール設定も削除されます。</p>
+                        <p className='mt-2 text-danger'>この操作は元に戻せません。関連するファイアウォール設定も削除されます。</p>
                     </ModalBody>
                     <ModalFooter>
                         <Button
-                            color="default"
-                            variant="light"
-                            onPress={onDeleteClose}
-                        >
+                            color='default'
+                            variant='light'
+                            onPress={onDeleteClose}>
                             キャンセル
                         </Button>
                         <Button
-                            color="danger"
-                            onPress={() => deleteConfirmId && deleteNode(deleteConfirmId)}
-                        >
+                            color='danger'
+                            onPress={() => deleteConfirmId && deleteNode(deleteConfirmId)}>
                             削除
                         </Button>
                     </ModalFooter>
