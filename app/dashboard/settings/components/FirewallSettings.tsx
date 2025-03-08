@@ -29,18 +29,18 @@ interface Node {
 const FILTER_TYPES = ['SrcIpAddress', 'DstIpAddress', 'SrcPort', 'DstPort', 'EtherType', 'IpProtocol'];
 const POLICIES = ['Whitelist', 'Blacklist'];
 
-export default function ImprovedFirewallSettings() {
+export default function CorrectedFirewallSettings() {
     const [rules, setRules] = useState<FirewallRule[]>([]);
     const [nodes, setNodes] = useState<Node[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [newRule, setNewRule] = useState<Partial<FirewallRule>>({
-        node_id: undefined, // undefined にして未選択状態にする
-        filter_type: 'SrcIpAddress',
-        filter_value: '',
-        priority: 100,
-        policy: 'Whitelist',
-    });
+
+    // フォーム状態
+    const [nodeId, setNodeId] = useState<string>('');
+    const [filterType, setFilterType] = useState<string>('SrcIpAddress');
+    const [filterValue, setFilterValue] = useState<string>('');
+    const [priority, setPriority] = useState<number>(100);
+    const [policy, setPolicy] = useState<string>('Whitelist');
 
     // Modal controls
     const {isOpen, onOpen, onClose} = useDisclosure();
@@ -119,13 +119,11 @@ export default function ImprovedFirewallSettings() {
 
     // ルールを追加する
     const addRule = async () => {
-        // ノードIDも必須項目に追加
-        if (!newRule.node_id || !newRule.filter_value || !newRule.filter_type || !newRule.policy) {
+        // バリデーション
+        if (!nodeId || !filterValue || !filterType || !policy) {
             setError('ノード、フィルタータイプ、値、ポリシーは必須です。');
             return;
         }
-
-        const nodeIdValue = newRule.node_id;
 
         try {
             const response = await fetch('/api/postgres/query', {
@@ -136,14 +134,12 @@ export default function ImprovedFirewallSettings() {
                 body: JSON.stringify({
                     query: `
                         INSERT INTO firewall_settings (node_id, filter_type, filter_value, priority, policy)
-                        VALUES (${nodeIdValue}, '${newRule.filter_type}', '${newRule.filter_value}',
-                                ${newRule.priority},
-                                '${newRule.policy}')
+                        VALUES (${nodeId}, '${filterType}', '${filterValue}',
+                                ${priority},
+                                '${policy}')
                     `,
                 }),
             });
-
-            const data = await response.json();
 
             if (!response.ok) {
                 setError('ルールの追加に失敗しました。');
@@ -154,13 +150,11 @@ export default function ImprovedFirewallSettings() {
             await loadRules();
 
             // フォームをリセット
-            setNewRule({
-                node_id: undefined, // 未選択状態に戻す
-                filter_type: 'SrcIpAddress',
-                filter_value: '',
-                priority: 100,
-                policy: 'Whitelist',
-            });
+            setNodeId('');
+            setFilterType('SrcIpAddress');
+            setFilterValue('');
+            setPriority(100);
+            setPolicy('Whitelist');
 
             // モーダルを閉じる
             onClose();
@@ -185,8 +179,6 @@ export default function ImprovedFirewallSettings() {
                 }),
             });
 
-            const data = await response.json();
-
             if (!response.ok) {
                 setError('ルールの削除に失敗しました。');
                 return;
@@ -201,39 +193,6 @@ export default function ImprovedFirewallSettings() {
             console.error('Error deleting rule:', err);
             setError('ルールの削除に失敗しました。');
         }
-    };
-
-    // 入力フィールドの変更を処理
-    const handleInputChange = (
-        e:
-            | React.ChangeEvent<HTMLInputElement>
-            | {
-                  target: {name: string; value: string | number | null};
-              },
-    ) => {
-        const {name, value} = e.target;
-
-        let processedValue = value;
-        if (name === 'priority') {
-            processedValue = parseInt(value as string) || 100;
-        } else if (name === 'node_id' && value === 'null') {
-            processedValue = null;
-        } else if (name === 'node_id' && value !== null) {
-            processedValue = parseInt(value as string);
-        }
-
-        setNewRule((prev) => ({
-            ...prev,
-            [name]: processedValue,
-        }));
-    };
-
-    // セレクトフィールドの変更を処理
-    const handleSelectChange = (name: string, value: string) => {
-        setNewRule((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
     };
 
     // 削除確認ダイアログを表示
@@ -278,7 +237,7 @@ export default function ImprovedFirewallSettings() {
                 </Button>
             </div>
 
-            <Card  shadow="none">
+            <Card shadow='none'>
                 <CardHeader>
                     <h3 className='text-lg font-semibold'>ファイアウォールルール一覧</h3>
                 </CardHeader>
@@ -355,20 +314,9 @@ export default function ImprovedFirewallSettings() {
                                 </label>
                                 <Select
                                     id='nodeId'
-                                    name='node_id'
                                     placeholder='ノードを選択 (必須)'
-                                    selectedKeys={newRule.node_id ? [`${newRule.node_id}`] : []}
-                                    onSelectionChange={(keys) => {
-                                        const key = keys.values().next().value;
-                                        if (key) {
-                                            handleInputChange({
-                                                target: {
-                                                    name: 'node_id',
-                                                    value: parseInt(key),
-                                                },
-                                            });
-                                        }
-                                    }}
+                                    selectedKeys={[nodeId]}
+                                    onChange={(e) => setNodeId(e.target.value)}
                                     isRequired>
                                     {nodes.map((node) => (
                                         <SelectItem key={node.id.toString()}>
@@ -376,6 +324,7 @@ export default function ImprovedFirewallSettings() {
                                         </SelectItem>
                                     ))}
                                 </Select>
+                                <p className='mt-1 text-xs text-default-400'>selected node: {nodeId}</p>
                             </div>
 
                             <div>
@@ -386,13 +335,9 @@ export default function ImprovedFirewallSettings() {
                                 </label>
                                 <Select
                                     id='filterType'
-                                    name='filter_type'
                                     placeholder='フィルタータイプを選択'
-                                    selectedKeys={[newRule.filter_type || 'SrcIpAddress']}
-                                    onSelectionChange={(keys) => {
-                                        const key = keys.values().next().value;
-                                        handleSelectChange('filter_type', key);
-                                    }}>
+                                    selectedKeys={[filterType]}
+                                    onChange={(e) => setFilterType(e.target.value)}>
                                     {FILTER_TYPES.map((type) => (
                                         <SelectItem key={type}>{type}</SelectItem>
                                     ))}
@@ -407,10 +352,9 @@ export default function ImprovedFirewallSettings() {
                                 </label>
                                 <Input
                                     id='filterValue'
-                                    name='filter_value'
                                     placeholder='例: 192.168.0.1'
-                                    value={newRule.filter_value || ''}
-                                    onChange={handleInputChange}
+                                    value={filterValue}
+                                    onChange={(e) => setFilterValue(e.target.value)}
                                 />
                             </div>
 
@@ -422,11 +366,10 @@ export default function ImprovedFirewallSettings() {
                                 </label>
                                 <Input
                                     id='priority'
-                                    name='priority'
                                     type='number'
                                     placeholder='優先度 (大きいほど優先)'
-                                    value={newRule.priority?.toString() || '100'}
-                                    onChange={handleInputChange}
+                                    value={priority.toString()}
+                                    onChange={(e) => setPriority(parseInt(e.target.value) || 100)}
                                 />
                                 <p className='mt-1 text-xs text-default-400'>値が大きいほど優先度が高くなります</p>
                             </div>
@@ -439,15 +382,11 @@ export default function ImprovedFirewallSettings() {
                                 </label>
                                 <Select
                                     id='policy'
-                                    name='policy'
                                     placeholder='ポリシーを選択'
-                                    selectedKeys={[newRule.policy || 'Whitelist']}
-                                    onSelectionChange={(keys) => {
-                                        const key = keys.values().next().value;
-                                        handleSelectChange('policy', key);
-                                    }}>
-                                    {POLICIES.map((policy) => (
-                                        <SelectItem key={policy}>{policy}</SelectItem>
+                                    selectedKeys={[policy]}
+                                    onChange={(e) => setPolicy(e.target.value)}>
+                                    {POLICIES.map((policyOption) => (
+                                        <SelectItem key={policyOption}>{policyOption}</SelectItem>
                                     ))}
                                 </Select>
                             </div>
