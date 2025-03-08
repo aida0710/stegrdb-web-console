@@ -10,6 +10,11 @@ import {useQuery} from '@/lib/hook/use-query';
 
 // 初期化用のSQL
 const NODE_TABLE_SQL = `
+-- 既存のテーブルを削除
+DROP TABLE IF EXISTS firewall_settings CASCADE;
+DROP TABLE IF EXISTS node_activity CASCADE;
+DROP TABLE IF EXISTS node_list CASCADE;
+
 -- ノード情報を管理するテーブル
 CREATE TABLE IF NOT EXISTS node_list (
     id SMALLINT PRIMARY KEY,
@@ -45,6 +50,12 @@ CREATE INDEX IF NOT EXISTS idx_node_activity_node_id ON node_activity(node_id);
 `;
 
 const PACKETS_TABLE_SQL = `
+-- 既存のテーブルとインデックスを削除
+DROP INDEX IF EXISTS idx_packets_node_timestamp_included;
+DROP INDEX IF EXISTS packets_timestamp_idx;
+DROP TABLE IF EXISTS processed_packets CASCADE;
+DROP TABLE IF EXISTS packets CASCADE;
+
 -- メインテーブル作成
 CREATE TABLE IF NOT EXISTS packets
 (
