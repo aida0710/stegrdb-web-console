@@ -278,7 +278,7 @@ export function QueryEditor({onResultsChange, queryHook}: QueryEditorProps) {
                                                     aria-label={`クエリ読み込み: ${savedQuery.name}`}>
                                                     {savedQuery.name}
                                                 </button>
-                                                <div className='mt-1 flex flex-wrap gap-1 items-center'>
+                                                <div className='mt-1 flex flex-wrap items-center gap-1'>
                                                     <Code>{savedQuery.query}</Code>
                                                     {savedQuery.tags?.map((tag) => (
                                                         <Chip

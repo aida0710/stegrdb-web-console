@@ -32,7 +32,7 @@ export default function DashboardPage() {
             isLoading,
             error,
             hasExecutedQuery,
-            lastQuery: lastQueryTextRef.current
+            lastQuery: lastQueryTextRef.current,
         });
     }, [results, isLoading, error, hasExecutedQuery]);
 
@@ -107,7 +107,7 @@ export default function DashboardPage() {
     const handleQueryResults = useCallback((editorResults: any, queryText: string) => {
         console.log('[DashboardPage] QueryEditorから結果を受信:', {
             resultLength: editorResults?.rows?.length,
-            query: queryText
+            query: queryText,
         });
 
         lastQueryTextRef.current = queryText;
@@ -165,7 +165,7 @@ export default function DashboardPage() {
 
     // 結果パネルに表示するコンテンツを決定
     const renderResultsPanel = () => {
-        console.log('[DashboardPage] Rendering ResultsPanel:', { isLoading, error, hasResults: !!results });
+        console.log('[DashboardPage] Rendering ResultsPanel:', {isLoading, error, hasResults: !!results});
 
         if (isLoading) {
             return (
@@ -220,10 +220,10 @@ export default function DashboardPage() {
                         <Database className='h-4 w-4 text-default-500' />
                     </CardHeader>
                     <CardBody>
-                        <div className='text-xl font-bold'>{activeConnectionInfo?.host}:{activeConnectionInfo?.port}</div>
-                        <p className='mt-1 text-xs text-default-500'>
-                            {dbInfo ? `PostgreSQL ${dbInfo.version}` : 'バージョン情報を取得中...'}
-                        </p>
+                        <div className='text-xl font-bold'>
+                            {activeConnectionInfo?.host}:{activeConnectionInfo?.port}
+                        </div>
+                        <p className='mt-1 text-xs text-default-500'>{dbInfo ? `PostgreSQL ${dbInfo.version}` : 'バージョン情報を取得中...'}</p>
                     </CardBody>
                 </Card>
 
