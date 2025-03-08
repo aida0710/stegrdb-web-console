@@ -58,17 +58,15 @@ export function middleware(request: NextRequest) {
     // API リクエストの場合に特別な処理
     if (request.nextUrl.pathname.startsWith('/api/postgres/')) {
         // APIリクエストのセッション検証
-        if (!sessionId &&
-            !request.nextUrl.pathname.endsWith('/connect') &&
-            request.method !== 'OPTIONS') {
+        if (!sessionId && !request.nextUrl.pathname.endsWith('/connect') && request.method !== 'OPTIONS') {
             console.log(`[Middleware] API request rejected due to missing session: ${request.nextUrl.pathname}`);
 
             const response = NextResponse.json(
                 {
                     success: false,
-                    message: 'セッションが見つかりません。再ログインしてください。'
+                    message: 'セッションが見つかりません。再ログインしてください。',
                 },
-                { status: 401 }
+                {status: 401},
             );
 
             return addCacheHeaders(addDebugHeaders(response));
@@ -76,7 +74,7 @@ export function middleware(request: NextRequest) {
 
         // OPTIONS リクエスト（プリフライト）の場合は許可
         if (request.method === 'OPTIONS') {
-            const response = new NextResponse(null, { status: 204 });
+            const response = new NextResponse(null, {status: 204});
             response.headers.set('Access-Control-Allow-Origin', '*');
             response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
             response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
