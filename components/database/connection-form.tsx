@@ -156,7 +156,7 @@ export function ConnectionForm({onConnected, defaultConnection}: ConnectionFormP
                 <div className='flex items-center justify-between'>
                     <div className='flex items-center space-x-2'>
                         <Database className='h-6 w-6' />
-                        <h1 className='text-xl font-bold'>StagRDB Web Console</h1>
+                        <h1 className='text-xl font-bold'>StegRDB Web Console</h1>
                     </div>
                 </div>
             </CardHeader>

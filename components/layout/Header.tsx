@@ -42,7 +42,7 @@ export function Header() {
                     className='flex items-center gap-2'
                     href='/'>
                     <Database className='h-6 w-6' />
-                    <span className='font-bold text-inherit'>StagRDB</span>
+                    <span className='font-bold text-inherit'>StegRDB</span>
                 </Link>
             </NavbarBrand>
 

@@ -9,7 +9,7 @@ export default function HomePage() {
         <div className='min-h-screen bg-background'>
             <section className='container mx-auto px-4 pb-16 pt-20 text-center'>
                 <div className='mx-auto max-w-3xl'>
-                    <h1 className='mb-6 text-5xl font-bold tracking-tight'>StagRDB</h1>
+                    <h1 className='mb-6 text-5xl font-bold tracking-tight'>StegRDB</h1>
                     <p className='mb-8 text-xl text-default-500'>
                         データベースを介した革新的な通信トンネリングソフトウェア
                         <br />
@@ -74,7 +74,7 @@ export default function HomePage() {
 
             <section className='bg-default-50 py-16 dark:bg-default-900/20'>
                 <div className='container mx-auto px-4'>
-                    <h2 className='mb-12 text-center text-3xl font-bold'>StagRDBの仕組み</h2>
+                    <h2 className='mb-12 text-center text-3xl font-bold'>StegRDBの仕組み</h2>
                     <div className='mx-auto max-w-4xl'>
                         <div className='grid gap-8 md:grid-cols-2'>
                             <Card>
