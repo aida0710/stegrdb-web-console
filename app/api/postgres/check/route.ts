@@ -91,11 +91,19 @@ export async function GET(request: NextRequest): Promise<NextResponse<Connection
         const client = await pool.connect();
 
         try {
+            // デフォルトよりタイムアウトを長く設定
+            await client.query('SET statement_timeout TO 30000');
+
             const result = await client.query('SELECT 1 as connected, version()');
             console.log(`[check] Session ${sessionId.substring(0, 8)}... is valid`);
 
+            // タイムアウトをリセット
+            await client.query('RESET statement_timeout');
+
             const now = new Date();
-            return NextResponse.json(
+
+            // 有効なセッションを返す際にもCookieを再設定して期限を更新
+            const response = NextResponse.json(
                 {
                     success: true,
                     message: '接続は有効です',
@@ -118,6 +126,19 @@ export async function GET(request: NextRequest): Promise<NextResponse<Connection
                     },
                 },
             );
+
+            // 有効なセッションに対しても、Cookieを再設定して有効期限を更新
+            response.cookies.set({
+                name: COOKIE_NAME,
+                value: sessionId,
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: '/',
+                maxAge: 86400, // 24時間
+            });
+
+            return response;
         } finally {
             client.release();
         }

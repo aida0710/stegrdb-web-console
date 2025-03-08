@@ -74,25 +74,42 @@ export async function POST(request: NextRequest): Promise<NextResponse<QueryResp
         const cookieStore = await cookies();
         const sessionId = cookieStore.get(COOKIE_NAME)?.value;
 
+        console.log(`[query] Processing query with session: ${sessionId ? sessionId.substring(0, 8) + '...' : 'not found'}`);
+
         if (!sessionId) {
             return NextResponse.json(
                 {
                     success: false,
                     message: 'セッションが見つかりません。再ログインしてください。',
                 },
-                {status: 401},
+                {
+                    status: 401,
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        Pragma: 'no-cache',
+                        Expires: '0',
+                    },
+                },
             );
         }
 
         const pool = pools.get(sessionId);
 
         if (!pool) {
+            console.error(`[query] No pool found for session: ${sessionId.substring(0, 8)}...`);
             return NextResponse.json(
                 {
                     success: false,
                     message: 'データベース接続が見つかりません。再ログインしてください。',
                 },
-                {status: 401},
+                {
+                    status: 401,
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        Pragma: 'no-cache',
+                        Expires: '0',
+                    },
+                },
             );
         }
 
@@ -100,12 +117,23 @@ export async function POST(request: NextRequest): Promise<NextResponse<QueryResp
         if (!query || !query.trim()) {
             return NextResponse.json({success: false, message: 'クエリが指定されていません。'}, {status: 400});
         }
+
+        console.log(`[query] Executing query for session ${sessionId.substring(0, 8)}...`);
+
         const client = await pool.connect();
 
         try {
+            // クエリ実行前に長めのタイムアウトを設定
+            await client.query('SET statement_timeout TO 60000'); // 60秒タイムアウト
+
+            console.log(`[query] Query statement: ${query.substring(0, 100)}${query.length > 100 ? '...' : ''}`);
             const result = await client.query(query);
 
+            // タイムアウトをリセット
+            await client.query('RESET statement_timeout');
+
             const executionTime = Date.now() - startTime;
+            console.log(`[query] Query executed in ${executionTime}ms`);
 
             if (result.rowCount === null) {
                 return NextResponse.json({
@@ -127,7 +155,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<QueryResp
                     })),
                 }).length;
 
-                console.log(`Response size: ${(testSize / 1024).toFixed(2)} KB`);
+                console.log(`[query] Response size: ${(testSize / 1024).toFixed(2)} KB`);
                 if (testSize > MAX_RESULT_SIZE) {
                     throw new Error(`結果のサイズが大きすぎます (${(testSize / 1024 / 1024).toFixed(2)} MB). クエリを絞り込んでください。`);
                 }
@@ -135,29 +163,53 @@ export async function POST(request: NextRequest): Promise<NextResponse<QueryResp
                 if (error instanceof Error && error.message.includes('結果のサイズが大きすぎます')) {
                     throw error;
                 }
-                console.error('Serialization test failed:', error);
+                console.error('[query] Serialization test failed:', error);
                 throw new Error('結果をシリアライズできません。クエリを絞り込むか、LIMIT句を使用してください。');
             }
 
-            return NextResponse.json({
-                success: true,
-                results: {
-                    rows: serializedRows,
-                    fields: result.fields.map((field: FieldDef) => ({
-                        name: field.name,
-                        dataTypeID: field.dataTypeID,
-                        tableID: field.tableID,
-                    })),
-                    rowCount: result.rowCount,
-                    command: result.command,
-                    executionTime,
+            // 成功レスポンスを返す際にCookieも再設定してセッションの有効期限を延長
+            const response = NextResponse.json(
+                {
+                    success: true,
+                    results: {
+                        rows: serializedRows,
+                        fields: result.fields.map((field: FieldDef) => ({
+                            name: field.name,
+                            dataTypeID: field.dataTypeID,
+                            tableID: field.tableID,
+                        })),
+                        rowCount: result.rowCount,
+                        command: result.command,
+                        executionTime,
+                    },
                 },
+                {
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        Pragma: 'no-cache',
+                        Expires: '0',
+                    },
+                },
+            );
+
+            // セッションCookieの有効期限を更新
+            response.cookies.set({
+                name: COOKIE_NAME,
+                value: sessionId,
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: '/',
+                maxAge: 86400, // 24時間
             });
+
+            console.log(`[query] Query completed successfully`);
+            return response;
         } finally {
             client.release();
         }
     } catch (error: any) {
-        console.error('Query execution error:', error);
+        console.error('[query] Query execution error:', error);
         let errorMessage = 'クエリの実行中にエラーが発生しました。';
         if (error.message) {
             errorMessage = `エラー: ${error.message}`;
@@ -169,7 +221,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<QueryResp
                 message: errorMessage,
                 error: error instanceof Error ? error.message : '不明なエラーが発生しました',
             },
-            {status: 500},
+            {
+                status: 500,
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    Pragma: 'no-cache',
+                    Expires: '0',
+                },
+            },
         );
     }
 }

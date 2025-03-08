@@ -23,11 +23,16 @@ export function useConnection() {
         reconnectAttempts: 0,
     });
 
-    const maxReconnectAttempts = 3;
+    const maxReconnectAttempts = 5; // 最大再接続試行回数を増やす（3→5）
     const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
     const {activeConnection, getConnection, updateConnectionStatus} = useConnectionStore();
 
-    // Clear any pending reconnect timers when component unmounts
+    // 最後の接続チェックタイムスタンプを追跡
+    const lastCheckRef = useRef<number>(Date.now());
+    // 接続チェックの最小間隔（ミリ秒）
+    const MIN_CHECK_INTERVAL = 3000;
+
+    // コンポーネントアンマウント時にタイマーをクリア
     useEffect(() => {
         return () => {
             if (reconnectTimerRef.current) {
@@ -38,6 +43,15 @@ export function useConnection() {
 
     const checkConnection = useCallback(
         async (silent = false) => {
+            // 短時間の連続呼び出しを防止
+            const now = Date.now();
+            if (now - lastCheckRef.current < MIN_CHECK_INTERVAL) {
+                console.log(`[useConnection] Skipping check, too frequent (${now - lastCheckRef.current}ms since last check)`);
+                return state.isConnected;
+            }
+
+            lastCheckRef.current = now;
+
             if (!silent) {
                 setState((prev) => ({...prev, isChecking: true, error: null}));
             }
@@ -51,6 +65,8 @@ export function useConnection() {
                         Pragma: 'no-cache',
                         Expires: '0',
                     },
+                    // credentials を追加して Cookie が確実に送信されるようにする
+                    credentials: 'include',
                 });
 
                 const data = await response.json();
@@ -68,7 +84,7 @@ export function useConnection() {
                         serverVersion: data.details?.serverVersion || data.details?.version,
                         connectedAt: data.details?.connectedAt ? new Date(data.details.connectedAt) : undefined,
                     },
-                    reconnectAttempts: 0, // Reset reconnect attempts on success
+                    reconnectAttempts: 0, // 成功したらリトライカウントをリセット
                 }));
 
                 if (activeConnection) {
@@ -85,7 +101,7 @@ export function useConnection() {
                         isConnected: false,
                         error: error instanceof Error ? error.message : '接続の確認中にエラーが発生しました',
                         connectionInfo: null,
-                        reconnectAttempts: prev.reconnectAttempts, // Keep the count
+                        reconnectAttempts: prev.reconnectAttempts, // カウント維持
                     }));
                 }
 
@@ -96,7 +112,7 @@ export function useConnection() {
                 return false;
             }
         },
-        [activeConnection, updateConnectionStatus],
+        [activeConnection, updateConnectionStatus, state.isConnected],
     );
 
     const connect = useCallback(
@@ -113,6 +129,7 @@ export function useConnection() {
                         Pragma: 'no-cache',
                         Expires: '0',
                     },
+                    credentials: 'include', // Cookie を確実に送信する
                     body: JSON.stringify(connectionInfo),
                 });
                 const data = await response.json();
@@ -130,10 +147,10 @@ export function useConnection() {
                         serverVersion: data.details?.serverVersion,
                         connectedAt: data.details?.connectedAt ? new Date(data.details.connectedAt) : undefined,
                     },
-                    reconnectAttempts: 0, // Reset reconnect attempts on new connection
+                    reconnectAttempts: 0, // 新しい接続で再試行カウントをリセット
                 }));
 
-                // Verify connection was established correctly after a short delay
+                // 接続設定後、短い遅延を置いて接続が確立されたことを確認
                 setTimeout(() => {
                     checkConnection(true).catch(console.error);
                 }, 500);
@@ -154,10 +171,10 @@ export function useConnection() {
         [checkConnection],
     );
 
-    // Auto-reconnection logic
+    // 再接続ロジック
     const attemptReconnect = useCallback(() => {
         setState((prev) => {
-            // If we've reached max attempts, stop trying
+            // 最大試行回数に達したら終了
             if (prev.reconnectAttempts >= maxReconnectAttempts) {
                 console.log(`[useConnection] Max reconnect attempts (${maxReconnectAttempts}) reached`);
                 return prev;
@@ -170,21 +187,45 @@ export function useConnection() {
 
             console.log(`[useConnection] Attempting reconnect (${newState.reconnectAttempts}/${maxReconnectAttempts})`);
 
-            // Get connection info and attempt to reconnect
+            // 接続情報を取得して再接続を試みる
             const info = getConnection(activeConnection || '');
             if (info) {
-                // Schedule reconnect with exponential backoff
+                // 指数バックオフによる再試行間隔
                 const backoffTime = Math.min(1000 * Math.pow(2, newState.reconnectAttempts - 1), 10000);
                 console.log(`[useConnection] Reconnecting in ${backoffTime}ms`);
 
-                reconnectTimerRef.current = setTimeout(() => {
-                    connect(info).catch((e) => {
+                if (reconnectTimerRef.current) {
+                    clearTimeout(reconnectTimerRef.current);
+                }
+
+                reconnectTimerRef.current = setTimeout(async () => {
+                    try {
+                        // 既存のセッションをクリーンアップするために、まず切断を試みる
+                        console.log('[useConnection] Cleaning up existing session before reconnect');
+                        await fetch('/api/postgres/connect', {
+                            method: 'DELETE',
+                            headers: {
+                                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                            },
+                            credentials: 'include',
+                        });
+
+                        // 少し待ってから再接続
+                        await new Promise((r) => setTimeout(r, 300));
+
+                        // 本格的な再接続
+                        const success = await connect(info);
+                        if (!success && newState.reconnectAttempts < maxReconnectAttempts) {
+                            console.log('[useConnection] Reconnect failed, scheduling next attempt');
+                            attemptReconnect();
+                        }
+                    } catch (e) {
                         console.error('[useConnection] Reconnect failed:', e);
-                        // Try again if we haven't reached max attempts
+                        // 最大試行回数に達していなければ、再度試行
                         if (newState.reconnectAttempts < maxReconnectAttempts) {
                             attemptReconnect();
                         }
-                    });
+                    }
                 }, backoffTime);
             }
 
@@ -192,35 +233,41 @@ export function useConnection() {
         });
     }, [activeConnection, connect, getConnection, maxReconnectAttempts]);
 
-    // Set up auto-reconnect handling
+    // エラー発生時に自動再接続を設定
     useEffect(() => {
         if (state.error && state.reconnectAttempts < maxReconnectAttempts) {
             attemptReconnect();
         }
     }, [state.error, state.reconnectAttempts, attemptReconnect, maxReconnectAttempts]);
 
-    // Initial connection check
+    // 初期接続チェック
     useEffect(() => {
         let mounted = true;
 
         checkConnection().then((connected) => {
             if (!mounted) return;
 
-            // If not connected, attempt reconnect
+            // 接続されていない場合、再接続を試みる
             if (!connected && activeConnection) {
                 attemptReconnect();
             }
         });
+
+        // 定期的な接続チェックタイマーを設定
+        const intervalId = setInterval(() => {
+            if (mounted) {
+                checkConnection(true).catch(console.error);
+            }
+        }, 30000); // 30秒ごとに接続を確認
 
         return () => {
             mounted = false;
             if (reconnectTimerRef.current) {
                 clearTimeout(reconnectTimerRef.current);
             }
+            clearInterval(intervalId);
         };
     }, [checkConnection, activeConnection, attemptReconnect]);
-
-    // ...other methods (disconnect, goToDashboard) remain the same
 
     const disconnect = useCallback(async () => {
         try {
@@ -232,6 +279,7 @@ export function useConnection() {
                     Pragma: 'no-cache',
                     Expires: '0',
                 },
+                credentials: 'include',
             });
 
             const data = await response.json();
@@ -262,6 +310,41 @@ export function useConnection() {
         return getConnection(activeConnection);
     }, [activeConnection, getConnection]);
 
+    // 強化された再接続ユーティリティ
+    const reconnect = useCallback(
+        async (force = false) => {
+            // 強制再接続の場合、カウンターをリセット
+            if (force) {
+                setState((prev) => ({...prev, reconnectAttempts: 0}));
+            }
+
+            try {
+                // 既存のセッションをクリーンアップ
+                console.log('[useConnection] Cleaning up session before forced reconnect');
+                await fetch('/api/postgres/connect', {
+                    method: 'DELETE',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    },
+                    credentials: 'include',
+                });
+
+                // 少し待機
+                await new Promise((r) => setTimeout(r, 300));
+
+                // 接続情報を取得して再接続
+                const info = getActiveConnectionInfo();
+                if (info) {
+                    return await connect(info);
+                }
+            } catch (error) {
+                console.error('[useConnection] Forced reconnect failed:', error);
+            }
+            return false;
+        },
+        [connect, getActiveConnectionInfo],
+    );
+
     return {
         ...state,
         activeConnection,
@@ -269,18 +352,6 @@ export function useConnection() {
         checkConnection,
         disconnect,
         connect,
-        // Enhanced reconnection utility
-        reconnect: async (force = false) => {
-            // If we're forcing a reconnect, reset the counter
-            if (force) {
-                setState((prev) => ({...prev, reconnectAttempts: 0}));
-            }
-
-            const info = getActiveConnectionInfo();
-            if (info) {
-                return await connect(info);
-            }
-            return false;
-        },
+        reconnect,
     };
 }

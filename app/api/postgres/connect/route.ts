@@ -16,11 +16,10 @@ const COOKIE_OPTIONS = {
 };
 
 function setCookie<T>(response: NextResponse<T>, sessionId: string): NextResponse<T> {
-    // More robust cookie setting that explicitly sets all options
-    // This avoids browser inconsistencies in interpreting cookie attributes
+    // よりロバストなCookie設定処理
     const expires = new Date(Date.now() + COOKIE_OPTIONS.maxAge * 1000);
 
-    // Set a proper cookie with all attributes
+    // 明示的に全属性を設定
     response.cookies.set({
         name: COOKIE_NAME,
         value: sessionId,
@@ -32,17 +31,18 @@ function setCookie<T>(response: NextResponse<T>, sessionId: string): NextRespons
         expires
     });
 
-    // For debugging, also set the raw header to see exactly what's being sent
+    // デバッグのため、生のヘッダー形式も表示
     const cookieValue = `${COOKIE_NAME}=${sessionId}; Path=${COOKIE_OPTIONS.path}; Expires=${expires.toUTCString()}; Max-Age=${COOKIE_OPTIONS.maxAge}; HttpOnly${COOKIE_OPTIONS.secure ? '; Secure' : ''}; SameSite=${COOKIE_OPTIONS.sameSite}`;
+    console.log(`[connect] Raw cookie string: ${cookieValue}`);
 
-    // Log the cookie being set with partial masking for security
+    // セキュリティのため、セッションの一部だけをログに記録
     console.log(`[connect] Setting session cookie: ${sessionId.substring(0, 8)}... expires: ${expires.toISOString()}`);
 
     return response;
 }
 
-function verifyCookie(request: NextRequest, response: NextResponse): boolean {
-    // Check if our cookie is in the Set-Cookie header
+function verifyCookie(response: NextResponse): boolean {
+    // Cookie設定を確認
     const setCookieHeader = response.headers.get('Set-Cookie');
     if (!setCookieHeader || !setCookieHeader.includes(COOKIE_NAME)) {
         console.error('[connect] Cookie header not set properly:', setCookieHeader);
@@ -75,20 +75,28 @@ export async function POST(request: NextRequest): Promise<NextResponse<Connectio
 
         if (sessionId) {
             try {
+                // 既存のセッションがある場合、明示的に終了
                 await endPool(sessionId);
-                console.log(`Ended existing session: ${sessionId}`);
+                console.log(`[connect] Ended existing session: ${sessionId.substring(0, 8)}...`);
             } catch (error) {
-                console.warn(`Failed to end existing session: ${sessionId}`, error);
+                console.warn(`[connect] Failed to end existing session: ${sessionId.substring(0, 8)}...`, error);
             }
         }
 
+        // 新しいセッションIDを生成
         sessionId = uuidv4();
-        console.log(`Created new session: ${sessionId}`);
+        console.log(`[connect] Created new session: ${sessionId.substring(0, 8)}...`);
 
+        // 接続プールを作成
         const pool = await getPool(sessionId, config);
 
         try {
             client = await pool.connect();
+
+            // アプリケーション名を設定してコネクションを識別しやすくする
+            await client.query(`SET application_name TO 'rdb-web-console-${sessionId.substring(0, 8)}'`);
+
+            // バージョン情報を取得
             const versionResult = await client.query('SELECT version()');
 
             const responseBody: ConnectionResponse = {
@@ -103,16 +111,26 @@ export async function POST(request: NextRequest): Promise<NextResponse<Connectio
             };
 
             const response = NextResponse.json(responseBody, {status: 200});
+
+            // キャッシュを無効化
             response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
             response.headers.set('Pragma', 'no-cache');
             response.headers.set('Expires', '0');
 
-            return setCookie<ConnectionResponse>(response, sessionId);
+            // Cookieを設定
+            const cookieResponse = setCookie<ConnectionResponse>(response, sessionId);
+
+            // Cookie設定を検証
+            if (!verifyCookie(cookieResponse)) {
+                console.error('[connect] Failed to set cookie properly');
+            }
+
+            return cookieResponse;
         } finally {
             if (client) client.release();
         }
     } catch (error: any) {
-        console.error('PostgreSQL connection error:', {
+        console.error('[connect] PostgreSQL connection error:', {
             code: error.code,
             message: error.message,
             detail: error.detail,
@@ -131,6 +149,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<Connectio
         );
 
         response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        response.headers.set('Pragma', 'no-cache');
+        response.headers.set('Expires', '0');
 
         return response;
     }
@@ -152,7 +172,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<Connect
         }
 
         await endPool(sessionId);
-        console.log(`Ended session: ${sessionId}`);
+        console.log(`[connect] Ended session: ${sessionId.substring(0, 8)}...`);
 
         const response = NextResponse.json<ConnectionResponse>(
             {
@@ -162,14 +182,25 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<Connect
             {status: 200},
         );
 
-        response.headers.set(
-            'Set-Cookie',
-            `${COOKIE_NAME}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; ${COOKIE_OPTIONS.secure ? 'Secure; ' : ''}SameSite=${COOKIE_OPTIONS.sameSite}`,
-        );
+        // よりロバストなCookie削除処理
+        response.cookies.set({
+            name: COOKIE_NAME,
+            value: '',
+            httpOnly: true,
+            secure: COOKIE_OPTIONS.secure,
+            sameSite: COOKIE_OPTIONS.sameSite,
+            path: '/',
+            maxAge: 0,
+            expires: new Date(0)
+        });
+
+        response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        response.headers.set('Pragma', 'no-cache');
+        response.headers.set('Expires', '0');
 
         return response;
     } catch (error: any) {
-        console.error('PostgreSQL disconnect error:', {
+        console.error('[connect] PostgreSQL disconnect error:', {
             message: error.message,
             stack: error.stack,
         });
