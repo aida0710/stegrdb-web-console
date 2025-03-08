@@ -232,14 +232,12 @@ export default function CorrectedFirewallSettings() {
                 <CardHeader>
                     <div className='flex items-center justify-between'>
                         <h3 className='text-lg font-semibold'>ファイアウォールルール</h3>
-                        <div className='flex justify-end'>
-                            <Button
-                                color='primary'
-                                startContent={<Plus size={16} />}
-                                onPress={onOpen}>
-                                新しいルールを追加
-                            </Button>
-                        </div>
+                        <Button
+                            color='primary'
+                            startContent={<Plus size={16} />}
+                            onPress={onOpen}>
+                            新しいルールを追加
+                        </Button>
                     </div>
                 </CardHeader>
                 <CardBody>

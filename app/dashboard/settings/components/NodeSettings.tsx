@@ -82,7 +82,7 @@ export default function ImprovedNodeSettings() {
                         VALUES (${newNode.id}, '${newNode.name}', '${newNode.description || ''}')
                         ON CONFLICT
                             (id)
-                            DO NOTHING
+                        DO NOTHING
                     `,
                 }),
             });
@@ -199,14 +199,12 @@ export default function ImprovedNodeSettings() {
                 <CardHeader>
                     <div className='flex items-center justify-between'>
                         <h3 className='text-lg font-semibold'>ノード一覧</h3>
-                        <div className='flex justify-end'>
-                            <Button
-                                color='primary'
-                                startContent={<Plus size={16} />}
-                                onPress={onOpen}>
-                                新しいノードを追加
-                            </Button>
-                        </div>
+                        <Button
+                            color='primary'
+                            startContent={<Plus size={16} />}
+                            onPress={onOpen}>
+                            新しいノードを追加
+                        </Button>
                     </div>
                 </CardHeader>
                 <CardBody>
